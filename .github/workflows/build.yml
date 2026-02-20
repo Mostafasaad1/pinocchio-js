@@ -21,7 +21,7 @@ jobs:
           node-version: '20'
 
       - name: Install Node Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Setup Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
