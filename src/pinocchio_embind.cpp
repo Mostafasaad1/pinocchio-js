@@ -392,6 +392,18 @@ val getJointJacobian_js(const Model& model, Data& data,
     return matrixXdToJs(J);
 }
 
+void updateFramePlacements_js(Model& model, Data& data) {
+    pinocchio::updateFramePlacements(model, data);
+}
+
+val getJointPlacement_js(const Data& data, JointIndex jointId) {
+    const pinocchio::SE3& placement = data.oMi[jointId];
+    val result = val::object();
+    result.set("translation", vector3dToJs(placement.translation()));
+    result.set("rotation", matrixXdToJs(placement.rotation()));
+    return result;
+}
+
 val centerOfMass_js(Model& model, Data& data, const val& q_js) {
     VectorXd q = jsToVectorXd(q_js);
     pinocchio::centerOfMass(model, data, q);
@@ -490,6 +502,8 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("computeGeneralizedGravity", &computeGeneralizedGravity_js);
     function("nonLinearEffects", &nonLinearEffects_js);
     function("forwardKinematics", &forwardKinematics_js);
+    function("updateFramePlacements", &updateFramePlacements_js);
+    function("getJointPlacement", &getJointPlacement_js);
     function("computeJointJacobians", &computeJointJacobians_js);
     function("getJointJacobian", &getJointJacobian_js);
     function("centerOfMass", &centerOfMass_js);
