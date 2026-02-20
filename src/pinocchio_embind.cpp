@@ -20,6 +20,9 @@
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/joint-configuration.hpp>
 #include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/aba.hpp>
+#include <pinocchio/algorithm/crba.hpp>
+#include <pinocchio/algorithm/energy.hpp>
 #include <pinocchio/multibody/joint/joint-composite.hpp>
 
 using namespace emscripten;
@@ -330,6 +333,47 @@ val rnea_js(Model& model, Data& data,
     return vectorXdToJs(data.tau);
 }
 
+val aba_js(Model& model, Data& data,
+            const val& q_js, const val& v_js, const val& tau_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    VectorXd tau = jsToVectorXd(tau_js);
+    pinocchio::aba(model, data, q, v, tau);
+    return vectorXdToJs(data.ddq);
+}
+
+val crba_js(Model& model, Data& data, const val& q_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    pinocchio::crba(model, data, q);
+    // Pinocchio's crba only fills the upper triangle, we need to symmetrize it
+    data.M.triangularView<Eigen::StrictlyLower>() = data.M.transpose().triangularView<Eigen::StrictlyLower>();
+    return matrixXdToJs(data.M);
+}
+
+double computeKineticEnergy_js(Model& model, Data& data, const val& q_js, const val& v_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    return pinocchio::computeKineticEnergy(model, data, q, v);
+}
+
+double computePotentialEnergy_js(Model& model, Data& data, const val& q_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    return pinocchio::computePotentialEnergy(model, data, q);
+}
+
+val computeGeneralizedGravity_js(Model& model, Data& data, const val& q_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    pinocchio::computeGeneralizedGravity(model, data, q);
+    return vectorXdToJs(data.g);
+}
+
+val nonLinearEffects_js(Model& model, Data& data, const val& q_js, const val& v_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    pinocchio::nonLinearEffects(model, data, q, v);
+    return vectorXdToJs(data.nle);
+}
+
 void forwardKinematics_js(Model& model, Data& data, const val& q_js) {
     VectorXd q = jsToVectorXd(q_js);
     pinocchio::forwardKinematics(model, data, q);
@@ -439,6 +483,12 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
 
     // ── Algorithms ──
     function("rnea", &rnea_js);
+    function("aba", &aba_js);
+    function("crba", &crba_js);
+    function("computeKineticEnergy", &computeKineticEnergy_js);
+    function("computePotentialEnergy", &computePotentialEnergy_js);
+    function("computeGeneralizedGravity", &computeGeneralizedGravity_js);
+    function("nonLinearEffects", &nonLinearEffects_js);
     function("forwardKinematics", &forwardKinematics_js);
     function("computeJointJacobians", &computeJointJacobians_js);
     function("getJointJacobian", &getJointJacobian_js);
