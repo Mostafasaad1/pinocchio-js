@@ -1,0 +1,16 @@
+{
+    "robots": [
+        {
+            "name": "YuMi",
+            "type": "dual arm robot",
+            "manufacturer": "ABB",
+            "xacro-generated": false,
+            "urdf": [
+                "urdf/abbYuMi.urdf"
+            ],
+            "variant": null,
+            "source-link": "https://se.mathworks.com/matlabcentral/fileexchange/98714-robotics-system-toolbox-robot-library-data",
+            "id": 53
+        }
+    ]
+}

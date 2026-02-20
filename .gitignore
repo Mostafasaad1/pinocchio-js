@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+node_modules/
+_deps/
+
+# Scripts
+copy_boost.sh
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+emsdk/
+BUILD_STATUS.md
+randomWebsites/
+
+package-lock.json
+CMakeFiles/
+examples/

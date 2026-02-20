@@ -1,0 +1,13 @@
+{
+  "name": "pinocchio-wasm",
+  "version": "1.0.0",
+  "description": "Pinocchio WASM bindings",
+  "scripts": {
+    "test": "node tests/runner.js",
+    "test:smoke": "node tests/smoke_test.js"
+  },
+  "dependencies": {
+    "xmldom": "^0.6.0"
+  },
+  "type": "commonjs"
+}

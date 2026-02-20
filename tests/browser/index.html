@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinocchio WASM — Test</title>
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --card: #1a1a2e;
+            --accent: #00d4ff;
+            --green: #00ff88;
+            --text: #e0e0f0;
+            --dim: #6a6a8a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--dim);
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .result {
+            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            color: var(--green);
+        }
+
+        .timing {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--dim);
+            font-size: 0.8rem;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .loading {
+            background: rgba(255, 200, 0, 0.15);
+            color: #ffc800;
+        }
+
+        .success {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--green);
+        }
+
+        .error {
+            background: rgba(255, 60, 60, 0.15);
+            color: #ff3c3c;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent), #0088cc);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: transform 0.1s;
+        }
+
+        .btn:hover {
+            transform: scale(1.03);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        #urdf-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 0.5rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🤖 Pinocchio WASM</h1>
+    <p class="subtitle">Rigid body dynamics in your browser — powered by WebAssembly</p>
+
+    <div id="status"><span class="status loading">⏳ Loading WASM module...</span></div>
+    <br>
+
+    <!-- Load the Emscripten-generated module factory -->
+    <script src="../../build/pinocchio.js"></script>
+
+    <div class="grid">
+        <!-- Test 1: Simple arm -->
+        <div class="card">
+            <h2>Test 1 — 3-Joint Arm (RNEA)</h2>
+            <div id="test1-result" class="result">Waiting...</div>
+            <div id="test1-timing" class="timing"></div>
+        </div>
+
+        <!-- Test 2: Center of Mass -->
+        <div class="card">
+            <h2>Test 2 — Center of Mass</h2>
+            <div id="test2-result" class="result">Waiting...</div>
+            <div id="test2-timing" class="timing"></div>
+        </div>
+
+        <!-- Test 3: Jacobian -->
+        <div class="card">
+            <h2>Test 3 — Jacobian</h2>
+            <div id="test3-result" class="result">Waiting...</div>
+            <div id="test3-timing" class="timing"></div>
+        </div>
+
+        <!-- URDF loading -->
+        <div class="card">
+            <h2>URDF Loader</h2>
+            <textarea id="urdf-input" placeholder="Paste URDF XML here..."></textarea>
+            <button class="btn" id="urdf-btn">Load URDF & Run RNEA</button>
+            <div id="urdf-result" class="result" style="margin-top:1rem;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { parseURDF, buildPinocchioModel } from '../../src/urdf-parser.mjs';
+
+        const statusEl = document.getElementById('status');
+
+        try {
+            // Load the WASM module
+            const pin = await PinocchioModule();
+            statusEl.innerHTML = '<span class="status success">✅ WASM loaded</span>';
+
+            // ── Test 1: 3-Joint Arm RNEA ──
+            {
+                const model = new pin.Model();
+                const se3_1 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+                const se3_2 = pin.SE3.fromXyzRpy(0, 0, 0.4, 0, 0, 0);
+                const se3_3 = pin.SE3.fromXyzRpy(0, 0, 0.3, 0, 0, 0);
+
+                const inertia = pin.Inertia.fromMassComInertia(
+                    1.0, [0, 0, 0.15], [0.01, 0, 0, 0.01, 0, 0.005]
+                );
+
+                const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3_1, "joint1");
+                pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+
+                const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3_2, "joint2");
+                pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+                const j3 = pin.addJoint(model, j2, pin.JointModelRZ(), se3_3, "joint3");
+                pin.appendBodyToJoint(model, j3, inertia, pin.SE3.identity());
+
+                const data = new pin.Data(model);
+
+                const q = new Float64Array([0.5, -0.3, 0.1]);
+                const v = new Float64Array([0.1, 0.0, -0.1]);
+                const a = new Float64Array([0, 0, 0]);
+
+                // Warmup
+                pin.rnea(model, data, q, v, a);
+
+                // Timed run
+                const t0 = performance.now();
+                const ITERS = 10000;
+                let tau;
+                for (let i = 0; i < ITERS; i++) {
+                    tau = pin.rnea(model, data, q, v, a);
+                }
+                const dt = performance.now() - t0;
+
+                document.getElementById('test1-result').textContent =
+                    `Model: ${model.njoints} joints, nq=${model.nq}, nv=${model.nv}\n` +
+                    `q  = [${Array.from(q).map(x => x.toFixed(3)).join(', ')}]\n` +
+                    `tau = [${Array.from(tau).map(x => x.toFixed(6)).join(', ')}]`;
+
+                document.getElementById('test1-timing').textContent =
+                    `⏱ ${ITERS} RNEA calls in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
+            }
+
+            // ── Test 2: Center of Mass ──
+            {
+                const model = new pin.Model();
+                const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+                const inertia = pin.Inertia.fromMassComInertia(
+                    2.0, [0, 0, 0.25], [0.02, 0, 0, 0.02, 0, 0.01]
+                );
+
+                const j1 = pin.addJoint(model, 0, pin.JointModelRZ(), se3, "joint1");
+                pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+
+                const data = new pin.Data(model);
+                const q = new Float64Array([0.0]);
+
+                const t0 = performance.now();
+                const ITERS = 10000;
+                let com;
+                for (let i = 0; i < ITERS; i++) {
+                    com = pin.centerOfMass(model, data, q);
+                }
+                const dt = performance.now() - t0;
+
+                const mass = pin.computeTotalMass(model);
+
+                document.getElementById('test2-result').textContent =
+                    `Total mass: ${mass.toFixed(3)} kg\n` +
+                    `COM = [${Array.from(com).map(x => x.toFixed(6)).join(', ')}]`;
+
+                document.getElementById('test2-timing').textContent =
+                    `⏱ ${ITERS} COM calls in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
+            }
+
+            // ── Test 3: Jacobian ──
+            {
+                const model = new pin.Model();
+                const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+                const inertia = pin.Inertia.fromMassComInertia(
+                    1.0, [0, 0, 0.2], [0.01, 0, 0, 0.01, 0, 0.005]
+                );
+
+                const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3, "j1");
+                pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+                const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3, "j2");
+                pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+                const data = new pin.Data(model);
+                const q = new Float64Array([0.3, -0.2]);
+
+                pin.computeJointJacobians(model, data, q);
+                const J = pin.getJointJacobian(model, data, 2, pin.ReferenceFrame.LOCAL_WORLD_ALIGNED.value);
+
+                // Format as 6×nv matrix
+                const nv = model.nv;
+                let matStr = '';
+                for (let row = 0; row < 6; row++) {
+                    const rowVals = [];
+                    for (let col = 0; col < nv; col++) {
+                        rowVals.push(J[col * 6 + row].toFixed(4));
+                    }
+                    matStr += `  [${rowVals.join(', ')}]\n`;
+                }
+
+                document.getElementById('test3-result').textContent =
+                    `Jacobian of joint 2 (6×${nv}):\n${matStr}`;
+                document.getElementById('test3-timing').textContent = '';
+            }
+
+            // ── URDF Loader ──
+            document.getElementById('urdf-btn').addEventListener('click', () => {
+                const urdfStr = document.getElementById('urdf-input').value;
+                const resultEl = document.getElementById('urdf-result');
+                try {
+                    const urdfData = parseURDF(urdfStr);
+                    const model = buildPinocchioModel(pin, urdfData);
+                    const data = new pin.Data(model);
+
+                    const q = pin.neutralConfiguration(model);
+                    const v = new Float64Array(model.nv).fill(0);
+                    const a = new Float64Array(model.nv).fill(0);
+
+                    const tau = pin.rnea(model, data, q, v, a);
+                    const com = pin.centerOfMass(model, data, q);
+
+                    resultEl.textContent =
+                        `✅ Loaded "${urdfData.robotName}"\n` +
+                        `   Joints: ${model.njoints}, nq: ${model.nq}, nv: ${model.nv}\n` +
+                        `   Gravity torques: [${Array.from(tau).slice(0, 6).map(x => x.toFixed(4)).join(', ')}${model.nv > 6 ? ', ...' : ''}]\n` +
+                        `   COM: [${Array.from(com).map(x => x.toFixed(4)).join(', ')}]`;
+                } catch (e) {
+                    resultEl.textContent = `❌ Error: ${e.message}`;
+                }
+            });
+
+        } catch (err) {
+            statusEl.innerHTML = `<span class="status error">❌ Failed: ${err.message}</span>`;
+            console.error(err);
+        }
+    </script>
+</body>
+
+</html>
