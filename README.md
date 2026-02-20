@@ -12,9 +12,21 @@ Pinocchio WASM is a port of the [Pinocchio](https://github.com/stack-of-tasks/pi
 
 ## Installation
 
-Currently, you can build from source or use the provided artifacts.
+### 1. NPM (Recommended)
 
-### Prerequisites for Building
+The easiest way to use the library in your Node.js or browser projects is to install the pre-compiled NPM package:
+
+```bash
+npm install pinocchio-js
+```
+
+### 2. GitHub Releases
+
+You can download the pre-compiled WebAssembly binaries (`pinocchio.js` and `pinocchio.wasm`) directly from the [Releases page](https://github.com/Mostafasaad1/pinocchio-js/releases).
+
+### 3. Building from Source
+
+#### Prerequisites
 
 1.  **Emscripten SDK (emsdk):** Required for compiling C++ to WASM.
     ```bash
