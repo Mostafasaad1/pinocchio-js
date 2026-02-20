@@ -1,6 +1,6 @@
 {
   "name": "pinocchio-js",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "High-performance WebAssembly bindings for the Pinocchio rigid body dynamics library",
   "keywords": [
     "pinocchio",
