@@ -1,6 +1,6 @@
 {
-  "name": "pinocchio-wasm",
-  "version": "1.0.0",
+  "name": "pinocchio-js",
+  "version": "1.0.1",
   "description": "High-performance WebAssembly bindings for the Pinocchio rigid body dynamics library",
   "keywords": [
     "pinocchio",
@@ -27,5 +27,20 @@
   "dependencies": {
     "xmldom": "^0.6.0"
   },
-  "type": "commonjs"
+  "type": "commonjs",
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mostafasaad1/pinocchio-js.git"
+  },
+  "author": "Mostafa Saad",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/Mostafasaad1/pinocchio-js/issues"
+  },
+  "homepage": "https://github.com/Mostafasaad1/pinocchio-js#readme"
 }

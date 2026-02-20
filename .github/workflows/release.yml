@@ -10,11 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write # Required for NPM OIDC Provenance publishing
       packages: write
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Checkout Pinocchio
+        uses: actions/checkout@v4
+        with:
+          repository: stack-of-tasks/pinocchio
+          path: pinocchio
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,7 +41,7 @@ jobs:
       - name: Build WASM
         run: |
           mkdir -p build && cd build
-          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release -DPINOCCHIO_SOURCE_DIR=$(pwd)/../pinocchio
           emmake make -j$(nproc)
 
       - name: Run Tests
@@ -51,13 +58,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Publish to NPM
+      # 2. Publish to NPM (OIDC Provenance)
       - name: Publish to NPM
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        continue-on-error: true 
-        # Fails gracefully if NPM_TOKEN is not set (e.g. first run)
+        run: npm publish --provenance --access public
+        continue-on-error: true
 
       # 3. Publish to GitHub Packages (Optional Backup)
       # - name: Publish to GitHub Packages

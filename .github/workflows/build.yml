@@ -15,6 +15,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Checkout Pinocchio
+        uses: actions/checkout@v4
+        with:
+          repository: stack-of-tasks/pinocchio
+          path: pinocchio
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,7 +41,7 @@ jobs:
       - name: Build WASM
         run: |
           mkdir -p build && cd build
-          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release -DPINOCCHIO_SOURCE_DIR=$(pwd)/../pinocchio
           emmake make -j$(nproc)
 
       - name: Run Tests
