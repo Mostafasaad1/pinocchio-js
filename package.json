@@ -1,7 +1,25 @@
 {
   "name": "pinocchio-wasm",
   "version": "1.0.0",
-  "description": "Pinocchio WASM bindings",
+  "description": "High-performance WebAssembly bindings for the Pinocchio rigid body dynamics library",
+  "keywords": [
+    "pinocchio",
+    "wasm",
+    "webassembly",
+    "robotics",
+    "dynamics",
+    "kinematics",
+    "rigid-body-dynamics",
+    "physics-engine"
+  ],
+  "main": "build/pinocchio.js",
+  "files": [
+    "build/pinocchio.js",
+    "build/pinocchio.wasm",
+    "src/urdf-parser.mjs",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node tests/runner.js",
     "test:smoke": "node tests/smoke_test.js"
