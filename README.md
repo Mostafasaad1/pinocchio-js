@@ -1,6 +1,10 @@
-# Pinocchio WASM
+# Pinocchio-js 
 
-Pinocchio WASM is a port of the [Pinocchio](https://github.com/stack-of-tasks/pinocchio) rigid body dynamics library to WebAssembly, enabling high-performance robot dynamics in the browser and Node.js.
+Pinocchio-js WASM is a port of the [Pinocchio](https://github.com/stack-of-tasks/pinocchio) rigid body dynamics library to WebAssembly, enabling high-performance robot dynamics in the browser and Node.js.
+
+## Examples
+A project based on Pinocchio-js
+[Robot-analyzer.io](https://mostafasaad1.github.io/robot-analyzer-js/)
 
 ## Features
 
@@ -119,3 +123,4 @@ This runs:
 ## License
 
 BSD-2-Clause
+
