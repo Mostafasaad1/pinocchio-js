@@ -12,8 +12,9 @@
 
 // Pinocchio headers
 #include <pinocchio/fwd.hpp>
-#include <pinocchio/multibody/model.hpp>
-#include <pinocchio/multibody/data.hpp>
+#include <pinocchio/multibody.hpp> // omnibus header
+// #include <pinocchio/multibody/model.hpp> // deprecated, included via omnibus header
+// #include <pinocchio/multibody/data.hpp> // deprecated, included via omnibus header
 #include <pinocchio/algorithm/rnea.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/center-of-mass.hpp>
@@ -23,7 +24,7 @@
 #include <pinocchio/algorithm/aba.hpp>
 #include <pinocchio/algorithm/crba.hpp>
 #include <pinocchio/algorithm/energy.hpp>
-#include <pinocchio/multibody/joint/joint-composite.hpp>
+// #include <pinocchio/multibody/joint/joint-composite.hpp> // deprecated, included via omnibus header
 
 using namespace emscripten;
 
