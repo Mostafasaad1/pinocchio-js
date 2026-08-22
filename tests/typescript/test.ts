@@ -15,7 +15,10 @@ import PinocchioModule, {
     centerOfMass,
     neutralConfiguration,
     getJointJacobian,
-    computeJointJacobians
+    computeJointJacobians,
+    getFrameVelocity,
+    computeFrameJacobian,
+    getFrameJacobian
 } from '../../src/pinocchio';
 import { parseURDF, buildPinocchioModel, URDFData } from '../../src/urdf-parser';
 import { CollisionChecker, CollisionResult } from '../../src/collision-checker';
@@ -50,9 +53,12 @@ async function runTest(): Promise<void> {
     pin.forwardKinematics(model, data, q);
     const com: Float64Array = pin.centerOfMass(model, data, q);
 
-    // Jacobians
+    // Jacobians & Frame Velocities
     pin.computeJointJacobians(model, data, q);
     const J: Float64Array = pin.getJointJacobian(model, data, 2, pin.ReferenceFrame.LOCAL);
+    const frameId = model.getFrameId('j2');
+    const J_frame: Float64Array = pin.computeFrameJacobian(model, data, q, frameId, pin.ReferenceFrame.LOCAL);
+    const v_frame: Float64Array = pin.getFrameVelocity(model, data, frameId, pin.ReferenceFrame.LOCAL);
 
     // Access properties
     const nq: number = model.nq;

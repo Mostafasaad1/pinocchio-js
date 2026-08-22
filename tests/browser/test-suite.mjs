@@ -301,5 +301,81 @@ export const browserTests = [
             const timing = `${ITERS} computeFrameJacobian calls in ${dt.toFixed(1)}ms (${(dt / ITERS * 1000).toFixed(1)} µs/call)`;
             return { result, timing, status: 'pass' };
         }
+    },
+    {
+        id: "test8",
+        title: "Test 8 — Frame Velocities",
+        run: (pin) => {
+            const model = new pin.Model();
+            const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+            const inertia = pin.Inertia.fromMassComInertia(
+                1.0, [0, 0, 0.25], [0.01, 0, 0, 0.01, 0, 0.005]
+            );
+
+            const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3, "j1");
+            pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+            const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3, "j2");
+            pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+            const data = new pin.Data(model);
+            const q = new Float64Array([0.2, -0.3]);
+            const v = new Float64Array([0.5, -0.4]);
+            const a = new Float64Array([0.0, 0.0]);
+
+            const frameId = model.getFrameId("j2");
+
+            // Verify out-of-bounds frameId throws RangeError
+            let errorCaught = false;
+            try {
+                pin.getFrameVelocity(model, data, 99999, pin.ReferenceFrame.LOCAL);
+            } catch (e) {
+                errorCaught = true;
+            }
+            if (!errorCaught) {
+                throw new Error("getFrameVelocity with invalid frameId should throw RangeError");
+            }
+
+            // Run FK with velocities
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+
+            const t0 = performance.now();
+            const ITERS = 10000;
+            let v_frame_local, v_frame_lwa;
+            for (let i = 0; i < ITERS; i++) {
+                v_frame_local = pin.getFrameVelocity(model, data, frameId, pin.ReferenceFrame.LOCAL);
+                v_frame_lwa = pin.getFrameVelocity(model, data, frameId, pin.ReferenceFrame.LOCAL_WORLD_ALIGNED);
+            }
+            const dt = performance.now() - t0;
+
+            // Validate against Jacobian * v
+            const J_local = pin.computeFrameJacobian(model, data, q, frameId, pin.ReferenceFrame.LOCAL);
+            // J is 6 x nv (column-major flat array)
+            const v_expected = new Float64Array(6);
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < model.nv; c++) {
+                    v_expected[r] += J_local[c * 6 + r] * v[c];
+                }
+            }
+
+            let maxDiff = 0;
+            for (let r = 0; r < 6; r++) {
+                maxDiff = Math.max(maxDiff, Math.abs(v_frame_local[r] - v_expected[r]));
+            }
+
+            if (maxDiff > 1e-6) {
+                throw new Error(`Frame velocity mismatch vs Jacobian: max diff ${maxDiff}`);
+            }
+
+            const result = `Frame "j2" Velocity (LOCAL):\n` +
+                `  v = [${Array.from(v_frame_local.subarray(0, 3)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `  w = [${Array.from(v_frame_local.subarray(3, 6)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `Frame "j2" Velocity (LOCAL_WORLD_ALIGNED):\n` +
+                `  v = [${Array.from(v_frame_lwa.subarray(0, 3)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `  w = [${Array.from(v_frame_lwa.subarray(3, 6)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `Max diff vs J*v: ${maxDiff.toExponential(2)}`;
+
+            const timing = `${ITERS * 2} getFrameVelocity calls in ${dt.toFixed(1)}ms (${(dt / (ITERS * 2) * 1000).toFixed(1)} µs/call)`;
+            return { result, timing, status: 'pass' };
+        }
     }
 ];

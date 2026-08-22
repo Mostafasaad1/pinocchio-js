@@ -122,6 +122,38 @@ module.exports = {
             return true;
         });
 
+        check("getFrameVelocity matches computeFrameJacobian * v across reference frames", () => {
+            const v = new Float64Array(model.nv);
+            v[0] = 0.5; v[1] = -0.3; v[2] = 0.2; v[3] = -0.1; v[4] = 0.4; v[5] = -0.2;
+            const a = new Float64Array(model.nv).fill(0);
+
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+
+            const framesToTest = [
+                { name: "LOCAL", ref: pin.ReferenceFrame.LOCAL },
+                { name: "LOCAL_WORLD_ALIGNED", ref: pin.ReferenceFrame.LOCAL_WORLD_ALIGNED },
+                { name: "WORLD", ref: pin.ReferenceFrame.WORLD }
+            ];
+
+            for (const { name: rfName, ref: rf } of framesToTest) {
+                const J = pin.computeFrameJacobian(model, data, q, frameId, rf);
+                const v_frame = pin.getFrameVelocity(model, data, frameId, rf);
+
+                assert(v_frame.length === 6, `v_frame (${rfName}) length is 6`);
+
+                // Compute J * v
+                const v_expected = new Float64Array(6);
+                for (let r = 0; r < 6; r++) {
+                    for (let c = 0; c < model.nv; c++) {
+                        v_expected[r] += J[c * 6 + r] * v[c];
+                    }
+                }
+
+                assertVecClose(v_frame, v_expected, 1e-6, `getFrameVelocity matches J*v for ${rfName}`);
+            }
+            return true;
+        });
+
         return { passed, failed };
     }
 };

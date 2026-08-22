@@ -43,7 +43,10 @@ export declare class Model implements EmbindObject {
     readonly nq: number;
     readonly nv: number;
     readonly njoints: number;
+    readonly nframes: number;
     readonly name: string;
+    existFrame(name: string): boolean;
+    getFrameId(name: string): number;
     delete(): void;
 }
 
@@ -51,6 +54,7 @@ export declare class Data implements EmbindObject {
     constructor(model: Model);
     getVelocity(jointId: number): Float64Array;
     getAcceleration(jointId: number): Float64Array;
+    oMf(frameId: number): SE3;
     delete(): void;
 }
 
@@ -188,6 +192,28 @@ export declare function getJointJacobian(
     refFrame: ReferenceFrame | number
 ): Float64Array;
 
+export declare function computeFrameJacobian(
+    model: Model,
+    data: Data,
+    q: Float64Array | ArrayLike<number>,
+    frameId: number,
+    refFrame: ReferenceFrame | number
+): Float64Array;
+
+export declare function getFrameJacobian(
+    model: Model,
+    data: Data,
+    frameId: number,
+    refFrame: ReferenceFrame | number
+): Float64Array;
+
+export declare function getFrameVelocity(
+    model: Model,
+    data: Data,
+    frameId: number,
+    refFrame: ReferenceFrame | number
+): Float64Array;
+
 export declare function centerOfMass(
     model: Model,
     data: Data,
@@ -239,6 +265,9 @@ export interface PinocchioModule {
     getJointPlacement: typeof getJointPlacement;
     computeJointJacobians: typeof computeJointJacobians;
     getJointJacobian: typeof getJointJacobian;
+    computeFrameJacobian: typeof computeFrameJacobian;
+    getFrameJacobian: typeof getFrameJacobian;
+    getFrameVelocity: typeof getFrameVelocity;
     centerOfMass: typeof centerOfMass;
     computeTotalMass: typeof computeTotalMass;
     randomConfiguration: typeof randomConfiguration;

@@ -523,6 +523,18 @@ val getFrameJacobian_js(const Model& model, Data& data,
     return matrixXdToJs(J);
 }
 
+val getFrameVelocity_js(const Model& model, const Data& data,
+                        FrameIndex frameId, int refFrame) {
+    if (frameId >= model.frames.size()) {
+        std::string msg = "Invalid frame ID";
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        throw std::out_of_range(msg);
+    }
+    pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
+    VectorXd v = pinocchio::getFrameVelocity(model, data, frameId, rf).toVector();
+    return vectorXdToJs(v);
+}
+
 void updateFramePlacements_js(Model& model, Data& data) {
     pinocchio::updateFramePlacements(model, data);
 }
@@ -679,6 +691,7 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("getJointJacobian", &getJointJacobian_js);
     function("computeFrameJacobian", &computeFrameJacobian_js);
     function("getFrameJacobian", &getFrameJacobian_js);
+    function("getFrameVelocity", &getFrameVelocity_js);
     function("centerOfMass", &centerOfMass_js);
     function("computeTotalMass", &computeTotalMass_js);
     function("randomConfiguration", &randomConfiguration_js);

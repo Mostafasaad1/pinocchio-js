@@ -57,6 +57,20 @@ module.exports = {
             assert.strictEqual(J_get.length, 6 * model.nv);
         });
 
+        check("getFrameVelocity - invalid frame ID throws", () => {
+            assert.throws(() => {
+                pin.getFrameVelocity(model, data, 99999, pin.ReferenceFrame.LOCAL);
+            }, /Invalid frame ID/);
+        });
+
+        check("getFrameVelocity - executes on valid frame", () => {
+            const v = new Float64Array(model.nv).fill(0.5);
+            const a = new Float64Array(model.nv).fill(0.0);
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+            const v_frame = pin.getFrameVelocity(model, data, frameId, pin.ReferenceFrame.LOCAL);
+            assert.strictEqual(v_frame.length, 6);
+        });
+
         return { passed, failed };
     }
 };
