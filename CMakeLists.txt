@@ -9,7 +9,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Override with: cmake .. -DPINOCCHIO_SOURCE_DIR=/path/to/pinocchio
 # ─────────────────────────────────────────────
 if(NOT DEFINED PINOCCHIO_SOURCE_DIR)
-  get_filename_component(PINOCCHIO_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../pinocchio/include")
+    get_filename_component(PINOCCHIO_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../pinocchio" ABSOLUTE)
+  else()
+    get_filename_component(PINOCCHIO_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+  endif()
 endif()
 
 message(STATUS "Pinocchio source dir: ${PINOCCHIO_SOURCE_DIR}")

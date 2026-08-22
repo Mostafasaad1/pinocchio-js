@@ -21,6 +21,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "build": "powershell -ExecutionPolicy Bypass -File ./build.ps1",
     "test": "node tests/runner.js",
     "test:smoke": "node tests/smoke_test.js"
   },

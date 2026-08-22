@@ -23,3 +23,5 @@ randomWebsites/
 package-lock.json
 CMakeFiles/
 examples/
+.agents/
+.specify/

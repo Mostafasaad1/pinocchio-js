@@ -45,14 +45,22 @@ You can download the pre-compiled WebAssembly binaries (`pinocchio.js` and `pino
 
 ## Building from Source
 
-We provide a one-step build script `build.sh`.
+We provide one-step build scripts for Windows, Linux, and macOS:
 
+**On Windows (PowerShell):**
+```powershell
+npm run build
+# or directly:
+.\build.ps1
+```
+
+**On Linux / macOS (Bash):**
 ```bash
 ./build.sh
 ```
 
 This will:
-1.  Download dependencies (Pinocchio, Eigen3, Boost headers) automatically.
+1.  Locate dependencies (Pinocchio v2 source, Eigen3 3.4 via FetchContent, Boost headers via Emscripten Ports) automatically.
 2.  Configure the project with `emcmake`.
 3.  Compile to `build/pinocchio.js` and `build/pinocchio.wasm`.
 
