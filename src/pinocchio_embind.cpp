@@ -460,6 +460,13 @@ void forwardKinematics_js(Model& model, Data& data, const val& q_js) {
     pinocchio::forwardKinematics(model, data, q);
 }
 
+void forwardKinematicsQVA_js(Model& model, Data& data, const val& q_js, const val& v_js, const val& a_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    VectorXd a = jsToVectorXd(a_js);
+    pinocchio::forwardKinematics(model, data, q, v, a);
+}
+
 void computeJointJacobians_js(Model& model, Data& data, const val& q_js) {
     VectorXd q = jsToVectorXd(q_js);
     pinocchio::computeJointJacobians(model, data, q);
@@ -512,6 +519,26 @@ val dataNle(const Data& data) { return vectorXdToJs(data.nle); }
 
 val dataComAt(const Data& data, unsigned idx) {
     return vector3dToJs(data.com[idx]);
+}
+
+val dataGetVelocity(const Data& data, JointIndex jointId) {
+    if (jointId >= data.v.size()) {
+        std::string msg = "Joint index out of bounds.";
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        throw std::out_of_range(msg);
+    }
+    VectorXd v = data.v[jointId].toVector();
+    return vectorXdToJs(v);
+}
+
+val dataGetAcceleration(const Data& data, JointIndex jointId) {
+    if (jointId >= data.a.size()) {
+        std::string msg = "Joint index out of bounds.";
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        throw std::out_of_range(msg);
+    }
+    VectorXd a = data.a[jointId].toVector();
+    return vectorXdToJs(a);
 }
 
 // ─── Embind Module ──────────────────────────────────────────────
@@ -568,6 +595,8 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     // ── Data ──
     class_<Data>("Data")
         .constructor<const Model&>()
+        .function("getVelocity", &dataGetVelocity)
+        .function("getAcceleration", &dataGetAcceleration)
         ;
 
     function("getTau", &dataTau);
@@ -585,6 +614,7 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("computeGeneralizedGravity", &computeGeneralizedGravity_js);
     function("nonLinearEffects", &nonLinearEffects_js);
     function("forwardKinematics", &forwardKinematics_js);
+    function("forwardKinematicsQVA", &forwardKinematicsQVA_js);
     function("updateFramePlacements", &updateFramePlacements_js);
     function("getJointPlacement", &getJointPlacement_js);
     function("computeJointJacobians", &computeJointJacobians_js);

@@ -49,6 +49,8 @@ export declare class Model implements EmbindObject {
 
 export declare class Data implements EmbindObject {
     constructor(model: Model);
+    getVelocity(jointId: number): Float64Array;
+    getAcceleration(jointId: number): Float64Array;
     delete(): void;
 }
 
@@ -161,6 +163,14 @@ export declare function forwardKinematics(
     q: Float64Array | ArrayLike<number>
 ): void;
 
+export declare function forwardKinematicsQVA(
+    model: Model,
+    data: Data,
+    q: Float64Array | ArrayLike<number>,
+    v: Float64Array | ArrayLike<number>,
+    a: Float64Array | ArrayLike<number>
+): void;
+
 export declare function updateFramePlacements(model: Model, data: Data): void;
 
 export declare function getJointPlacement(data: Data, jointId: number): JointPlacement;
@@ -224,6 +234,7 @@ export interface PinocchioModule {
     computeGeneralizedGravity: typeof computeGeneralizedGravity;
     nonLinearEffects: typeof nonLinearEffects;
     forwardKinematics: typeof forwardKinematics;
+    forwardKinematicsQVA: typeof forwardKinematicsQVA;
     updateFramePlacements: typeof updateFramePlacements;
     getJointPlacement: typeof getJointPlacement;
     computeJointJacobians: typeof computeJointJacobians;

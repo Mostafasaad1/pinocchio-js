@@ -185,6 +185,13 @@
             <div id="test5-timing" class="timing"></div>
         </div>
 
+        <!-- Test 6: Forward Kinematics QVA -->
+        <div class="card">
+            <h2>Test 6 — Forward Kinematics (QVA)</h2>
+            <div id="test6-result" class="result">Waiting...</div>
+            <div id="test6-timing" class="timing"></div>
+        </div>
+
         <!-- URDF loading -->
         <div class="card">
             <h2>URDF Loader</h2>
@@ -418,6 +425,43 @@
 
                 document.getElementById('test5-timing').textContent =
                     `⏱ ${ITERS} ABA calls with forces in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
+            }
+
+            // ── Test 6: Forward Kinematics QVA ──
+            {
+                const model = new pin.Model();
+                const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+                const inertia = pin.Inertia.fromMassComInertia(
+                    1.0, [0, 0, 0.25], [0.01, 0, 0, 0.01, 0, 0.005]
+                );
+
+                const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3, "j1");
+                pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+                const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3, "j2");
+                pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+                const data = new pin.Data(model);
+                const q = new Float64Array([0.2, -0.3]);
+                const v = new Float64Array([0.1, -0.1]);
+                const a = new Float64Array([0.5, 0.5]);
+
+                const t0 = performance.now();
+                const ITERS = 10000;
+                for (let i = 0; i < ITERS; i++) {
+                    pin.forwardKinematicsQVA(model, data, q, v, a);
+                }
+                const dt = performance.now() - t0;
+
+                const spatialVel = data.getVelocity(2);
+                const spatialAcc = data.getAcceleration(2);
+
+                document.getElementById('test6-result').textContent =
+                    `q = [0.2, -0.3], v = [0.1, -0.1], a = [0.5, 0.5]\n` +
+                    `Link 2 Spatial Velocity:\n  [${Array.from(spatialVel).map(x => x.toFixed(4)).join(', ')}]\n` +
+                    `Link 2 Spatial Acceleration:\n  [${Array.from(spatialAcc).map(x => x.toFixed(4)).join(', ')}]`;
+
+                document.getElementById('test6-timing').textContent =
+                    `⏱ ${ITERS} QVA calls in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
             }
 
             // ── URDF Loader ──

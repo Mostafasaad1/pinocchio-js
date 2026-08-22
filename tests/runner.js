@@ -89,7 +89,8 @@ async function main() {
         'test_algo.js',
         'test_aba_fext.js',
         'test_urdf.js',
-        'test_collision.js'
+        'test_collision.js',
+        'test_forward_kinematics.js'
     ];
 
     let totalPassed = 0;
