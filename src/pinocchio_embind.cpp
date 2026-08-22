@@ -535,6 +535,46 @@ val getFrameVelocity_js(const Model& model, const Data& data,
     return vectorXdToJs(v);
 }
 
+void getFrameAcceleration_js(
+    const Model& model, 
+    const Data& data, 
+    const std::string& frameName, 
+    int refFrame, 
+    val outArray
+) {
+    if (!model.existFrame(frameName)) {
+        std::string msg = "Frame '" + frameName + "' not found in model.";
+        EM_ASM({ throw new Error(UTF8ToString($0)); }, msg.c_str());
+        throw std::invalid_argument(msg);
+    }
+
+    // Heuristic to check if forwardKinematicsQVA was called:
+    // If all joint velocities and accelerations are exactly zero, it is likely uninitialized.
+    // This provides a safety check for the most common error case.
+    bool is_initialized = false;
+    for (size_t i = 1; i < data.v.size(); ++i) {
+        if (!data.v[i].toVector().isZero() || !data.a[i].toVector().isZero()) {
+            is_initialized = true;
+            break;
+        }
+    }
+    
+    if (model.njoints > 1 && !is_initialized) {
+        std::string msg = "forwardKinematicsQVA must be called before getFrameAcceleration";
+        EM_ASM({ throw new Error(UTF8ToString($0)); }, msg.c_str());
+        throw std::logic_error(msg);
+    }
+
+    FrameIndex frameId = model.getFrameId(frameName);
+    pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
+    
+    pinocchio::Motion a = pinocchio::getFrameAcceleration(model, data, frameId, rf);
+    for(int i = 0; i < 3; ++i) {
+        outArray.set(i, val(a.linear()[i]));
+        outArray.set(i+3, val(a.angular()[i]));
+    }
+}
+
 void updateFramePlacements_js(Model& model, Data& data) {
     pinocchio::updateFramePlacements(model, data);
 }
@@ -692,6 +732,7 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("computeFrameJacobian", &computeFrameJacobian_js);
     function("getFrameJacobian", &getFrameJacobian_js);
     function("getFrameVelocity", &getFrameVelocity_js);
+    function("getFrameAcceleration", &getFrameAcceleration_js);
     function("centerOfMass", &centerOfMass_js);
     function("computeTotalMass", &computeTotalMass_js);
     function("randomConfiguration", &randomConfiguration_js);

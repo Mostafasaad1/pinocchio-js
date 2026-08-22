@@ -214,6 +214,14 @@ export declare function getFrameVelocity(
     refFrame: ReferenceFrame | number
 ): Float64Array;
 
+export declare function getFrameAcceleration(
+    model: Model,
+    data: Data,
+    frameName: string,
+    referenceFrame: ReferenceFrame | number,
+    out_acceleration: Float64Array
+): void;
+
 export declare function centerOfMass(
     model: Model,
     data: Data,
@@ -268,6 +276,7 @@ export interface PinocchioModule {
     computeFrameJacobian: typeof computeFrameJacobian;
     getFrameJacobian: typeof getFrameJacobian;
     getFrameVelocity: typeof getFrameVelocity;
+    getFrameAcceleration: typeof getFrameAcceleration;
     centerOfMass: typeof centerOfMass;
     computeTotalMass: typeof computeTotalMass;
     randomConfiguration: typeof randomConfiguration;

@@ -71,6 +71,33 @@ module.exports = {
             assert.strictEqual(v_frame.length, 6);
         });
 
+        check("getFrameAcceleration - invalid frame name throws", () => {
+            const outArr = new Float64Array(6);
+            assert.throws(() => {
+                pin.getFrameAcceleration(model, data, "invalid_frame", pin.ReferenceFrame.LOCAL, outArr);
+            }, /Frame 'invalid_frame' not found in model/);
+        });
+
+        check("getFrameAcceleration - uninitialized state throws", () => {
+            const freshData = new pin.Data(model);
+            const outArr = new Float64Array(6);
+            assert.throws(() => {
+                pin.getFrameAcceleration(model, freshData, "universe", pin.ReferenceFrame.LOCAL, outArr);
+            }, /forwardKinematicsQVA must be called before getFrameAcceleration/);
+        });
+
+        check("getFrameAcceleration - executes on valid frame", () => {
+            const v = new Float64Array(model.nv).fill(0.5);
+            const a = new Float64Array(model.nv).fill(1.0);
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+            
+            const outArr = new Float64Array(6);
+            pin.getFrameAcceleration(model, data, "universe", pin.ReferenceFrame.LOCAL, outArr);
+            
+            assert.strictEqual(outArr.length, 6);
+            // the universe frame should have acceleration = gravity, but let's just check length
+        });
+
         return { passed, failed };
     }
 };

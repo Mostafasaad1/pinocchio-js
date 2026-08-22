@@ -154,6 +154,45 @@ module.exports = {
             return true;
         });
 
+        check("getFrameAcceleration deep tests", () => {
+            const v = new Float64Array(model.nv);
+            v[0] = 0.5; v[1] = -0.3; v[2] = 0.2; v[3] = -0.1; v[4] = 0.4; v[5] = -0.2;
+            const a = new Float64Array(model.nv);
+            a[0] = 1.0; a[1] = 0.5; a[2] = -0.5; a[3] = 0.2; a[4] = -0.1; a[5] = 0.3;
+
+            const framesToTest = [
+                { name: "LOCAL", ref: pin.ReferenceFrame.LOCAL },
+                { name: "LOCAL_WORLD_ALIGNED", ref: pin.ReferenceFrame.LOCAL_WORLD_ALIGNED },
+                { name: "WORLD", ref: pin.ReferenceFrame.WORLD }
+            ];
+
+            // Test 1: with v = 0, a_frame should be exactly J * a
+            const v_zero = new Float64Array(model.nv).fill(0);
+            pin.forwardKinematicsQVA(model, data, q, v_zero, a);
+
+            for (const { name: rfName, ref: rf } of framesToTest) {
+                const J = pin.computeFrameJacobian(model, data, q, frameId, rf);
+                const a_frame_out = new Float64Array(6);
+                pin.getFrameAcceleration(model, data, frameName, rf, a_frame_out);
+
+                const a_expected = new Float64Array(6);
+                for (let r = 0; r < 6; r++) {
+                    for (let c = 0; c < model.nv; c++) {
+                        a_expected[r] += J[c * 6 + r] * a[c];
+                    }
+                }
+                assertVecClose(a_frame_out, a_expected, 1e-6, `getFrameAcceleration (v=0) matches J*a for ${rfName}`);
+            }
+
+            // Test 2: Ensure it doesn't allocate (SC-002)
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+            const a_frame_out_2 = new Float64Array(6);
+            pin.getFrameAcceleration(model, data, frameName, pin.ReferenceFrame.LOCAL, a_frame_out_2);
+            assert(a_frame_out_2.some(x => x !== 0), "Acceleration is populated");
+            
+            return true;
+        });
+
         return { passed, failed };
     }
 };

@@ -377,5 +377,106 @@ export const browserTests = [
             const timing = `${ITERS * 2} getFrameVelocity calls in ${dt.toFixed(1)}ms (${(dt / (ITERS * 2) * 1000).toFixed(1)} µs/call)`;
             return { result, timing, status: 'pass' };
         }
+    },
+    {
+        id: "test9",
+        title: "Test 9 — Frame Accelerations",
+        run: (pin) => {
+            const model = new pin.Model();
+            const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+            const inertia = pin.Inertia.fromMassComInertia(
+                1.0, [0, 0, 0.25], [0.01, 0, 0, 0.01, 0, 0.005]
+            );
+
+            const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3, "j1");
+            pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+            const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3, "j2");
+            pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+            const data = new pin.Data(model);
+            const q = new Float64Array([0.2, -0.3]);
+            const v = new Float64Array([0.5, -0.4]);
+            const a = new Float64Array([1.2, -0.8]);
+            const outAccel = new Float64Array(6);
+
+            // 1. Error check: Uninitialized state before FK QVA
+            let uninitErrorCaught = false;
+            try {
+                pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.LOCAL, outAccel);
+            } catch (e) {
+                uninitErrorCaught = true;
+            }
+            if (!uninitErrorCaught) {
+                throw new Error("getFrameAcceleration before forwardKinematicsQVA should throw an error");
+            }
+
+            // Run FK with velocities and accelerations
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+
+            // 2. Error check: Invalid frame name
+            let invalidNameErrorCaught = false;
+            try {
+                pin.getFrameAcceleration(model, data, "non_existent_frame", pin.ReferenceFrame.LOCAL, outAccel);
+            } catch (e) {
+                invalidNameErrorCaught = true;
+            }
+            if (!invalidNameErrorCaught) {
+                throw new Error("getFrameAcceleration with invalid frame name should throw an error");
+            }
+
+            // 3. Compute frame acceleration across reference frames
+            const a_local = new Float64Array(6);
+            const a_lwa = new Float64Array(6);
+            const a_world = new Float64Array(6);
+
+            pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.LOCAL, a_local);
+            pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.LOCAL_WORLD_ALIGNED, a_lwa);
+            pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.WORLD, a_world);
+
+            // 4. Validate theoretical property: When v = 0, a_frame == J * a
+            const v_zero = new Float64Array(model.nv).fill(0);
+            pin.forwardKinematicsQVA(model, data, q, v_zero, a);
+
+            const J_local = pin.computeFrameJacobian(model, data, q, model.getFrameId("j2"), pin.ReferenceFrame.LOCAL);
+            const a_expected_local = new Float64Array(6);
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < model.nv; c++) {
+                    a_expected_local[r] += J_local[c * 6 + r] * a[c];
+                }
+            }
+
+            const a_test_v0 = new Float64Array(6);
+            pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.LOCAL, a_test_v0);
+
+            let maxDiff = 0;
+            for (let r = 0; r < 6; r++) {
+                maxDiff = Math.max(maxDiff, Math.abs(a_test_v0[r] - a_expected_local[r]));
+            }
+
+            if (maxDiff > 1e-6) {
+                throw new Error(`Frame acceleration mismatch vs J*a (v=0): max diff ${maxDiff}`);
+            }
+
+            // 5. Benchmark timed run (zero-allocation in-place buffer)
+            pin.forwardKinematicsQVA(model, data, q, v, a);
+            const t0 = performance.now();
+            const ITERS = 10000;
+            for (let i = 0; i < ITERS; i++) {
+                pin.getFrameAcceleration(model, data, "j2", pin.ReferenceFrame.LOCAL, outAccel);
+            }
+            const dt = performance.now() - t0;
+
+            const result = `Frame "j2" Acceleration (LOCAL):\n` +
+                `  lin = [${Array.from(a_local.subarray(0, 3)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `  ang = [${Array.from(a_local.subarray(3, 6)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `Frame "j2" Acceleration (LOCAL_WORLD_ALIGNED):\n` +
+                `  lin = [${Array.from(a_lwa.subarray(0, 3)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `  ang = [${Array.from(a_lwa.subarray(3, 6)).map(x => x.toFixed(4)).join(', ')}]\n` +
+                `Error guards: Uninit check ✓ | Invalid name check ✓\n` +
+                `v=0 check vs J*a: max diff ${maxDiff.toExponential(2)} (passed)`;
+
+            const timing = `${ITERS} getFrameAcceleration calls in ${dt.toFixed(1)}ms (${(dt / ITERS * 1000).toFixed(1)} µs/call)`;
+            return { result, timing, status: 'pass' };
+        }
     }
 ];
