@@ -110,6 +110,19 @@ export declare function aba(
     tau: Float64Array | ArrayLike<number>
 ): Float64Array;
 
+export type ExternalForceMap = {
+    [linkIndex: number]: Float64Array | ArrayLike<number>;
+};
+
+export declare function abaWithForces(
+    model: Model,
+    data: Data,
+    q: Float64Array | ArrayLike<number>,
+    v: Float64Array | ArrayLike<number>,
+    tau: Float64Array | ArrayLike<number>,
+    fext?: ExternalForceMap
+): Float64Array;
+
 export declare function crba(
     model: Model,
     data: Data,
@@ -204,6 +217,7 @@ export interface PinocchioModule {
 
     rnea: typeof rnea;
     aba: typeof aba;
+    abaWithForces: typeof abaWithForces;
     crba: typeof crba;
     computeKineticEnergy: typeof computeKineticEnergy;
     computePotentialEnergy: typeof computePotentialEnergy;

@@ -178,6 +178,13 @@
             <div id="test4-timing" class="timing"></div>
         </div>
 
+        <!-- Test 5: ABA with External Forces -->
+        <div class="card">
+            <h2>Test 5 — Forward Dynamics with Forces (ABA)</h2>
+            <div id="test5-result" class="result">Waiting...</div>
+            <div id="test5-timing" class="timing"></div>
+        </div>
+
         <!-- URDF loading -->
         <div class="card">
             <h2>URDF Loader</h2>
@@ -369,6 +376,48 @@
 
                 document.getElementById('test4-timing').textContent =
                     `⏱ ${ITERS} queries in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
+            }
+
+            // ── Test 5: ABA with External Forces ──
+            {
+                const model = new pin.Model();
+                const se3 = pin.SE3.fromXyzRpy(0, 0, 0.5, 0, 0, 0);
+                const inertia = pin.Inertia.fromMassComInertia(
+                    1.0, [0, 0, 0.25], [0.01, 0, 0, 0.01, 0, 0.005]
+                );
+
+                const j1 = pin.addJoint(model, 0, pin.JointModelRX(), se3, "j1");
+                pin.appendBodyToJoint(model, j1, inertia, pin.SE3.identity());
+                const j2 = pin.addJoint(model, j1, pin.JointModelRY(), se3, "j2");
+                pin.appendBodyToJoint(model, j2, inertia, pin.SE3.identity());
+
+                const data1 = new pin.Data(model);
+                const data2 = new pin.Data(model);
+                const q = new Float64Array([0.2, -0.3]);
+                const v = new Float64Array([0.1, 0.0]);
+                const tau = new Float64Array([0.0, 0.0]);
+
+                const fext = {
+                    2: new Float64Array([0, 0, 0, 0, 0, -9.81]) // 1kg load in -Z
+                };
+
+                const ddq_base = pin.aba(model, data1, q, v, tau);
+
+                const t0 = performance.now();
+                const ITERS = 10000;
+                let ddq_fext;
+                for (let i = 0; i < ITERS; i++) {
+                    ddq_fext = pin.abaWithForces(model, data2, q, v, tau, fext);
+                }
+                const dt = performance.now() - t0;
+
+                document.getElementById('test5-result').textContent =
+                    `Baseline aba:        [${Array.from(ddq_base).map(x => x.toFixed(4)).join(', ')}]\n` +
+                    `With External Force: [${Array.from(ddq_fext).map(x => x.toFixed(4)).join(', ')}]\n` +
+                    `Applied at link 2:   [0, 0, 0,  0, 0, -9.81] N`;
+
+                document.getElementById('test5-timing').textContent =
+                    `⏱ ${ITERS} ABA calls with forces in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
             }
 
             // ── URDF Loader ──

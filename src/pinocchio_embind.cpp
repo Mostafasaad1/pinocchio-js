@@ -5,6 +5,9 @@
 
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 // Pinocchio WASM config - must be included before pinocchio headers
 // to define missing macros like PINOCCHIO_DEPRECATED_MESSAGE
@@ -117,6 +120,56 @@ val matrixXdToJs(const MatrixXd& m) {
         for (Eigen::Index i = 0; i < m.rows(); ++i)
             result.set(idx++, val(m(i,j)));
     return result;
+}
+
+/**
+ * Convert a JS External Force Map ({ [linkIndex: number]: Float64Array(6) })
+ * to a PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) of size model.njoints.
+ * Validates index bounds and wrench dimensions.
+ * Duplicate keys are accumulated additively.
+ */
+PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) jsToForceVector(const Model& model, const val& fext_js) {
+    PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext((size_t)model.njoints, pinocchio::Force::Zero());
+    if (fext_js.isUndefined() || fext_js.isNull()) {
+        return fext;
+    }
+
+    val keys = val::global("Object").call<val>("keys", fext_js);
+    const unsigned n = keys["length"].as<unsigned>();
+    for (unsigned k = 0; k < n; ++k) {
+        std::string keyStr = keys[k].as<std::string>();
+        int idx = 0;
+        try {
+            idx = std::stoi(keyStr);
+        } catch (...) {
+            std::string msg = "Link index " + keyStr + " is out of range (0.." + std::to_string(model.njoints - 1) + ")";
+            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            throw std::out_of_range(msg);
+        }
+
+        if (idx < 0 || idx >= model.njoints) {
+            std::string msg = "Link index " + std::to_string(idx) + " is out of range (0.." + std::to_string(model.njoints - 1) + ")";
+            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            throw std::out_of_range(msg);
+        }
+
+        val w = fext_js[keys[k]];
+        if (w.isUndefined() || w.isNull() || w["length"].isUndefined()) {
+            std::string msg = "Wrench at link " + std::to_string(idx) + " must have 6 components, got 0";
+            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            throw std::out_of_range(msg);
+        }
+        unsigned len = w["length"].as<unsigned>();
+        if (len != 6) {
+            std::string msg = "Wrench at link " + std::to_string(idx) + " must have 6 components, got " + std::to_string(len);
+            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            throw std::out_of_range(msg);
+        }
+        Vector3d torque(w[0].as<double>(), w[1].as<double>(), w[2].as<double>());
+        Vector3d linear(w[3].as<double>(), w[4].as<double>(), w[5].as<double>());
+        fext[(size_t)idx] += pinocchio::Force(linear, torque);
+    }
+    return fext;
 }
 
 // ─── SE3 Factories ──────────────────────────────────────────────
@@ -342,6 +395,34 @@ val aba_js(Model& model, Data& data,
     return vectorXdToJs(data.ddq);
 }
 
+val aba_fext_js(Model& model, Data& data,
+                const val& q_js, const val& v_js, const val& tau_js,
+                const val& fext_js) {
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    VectorXd tau = jsToVectorXd(tau_js);
+
+    if (fext_js.isUndefined() || fext_js.isNull()) {
+        pinocchio::aba(model, data, q, v, tau);
+        return vectorXdToJs(data.ddq);
+    }
+
+    val keys = val::global("Object").call<val>("keys", fext_js);
+    if (keys["length"].as<unsigned>() == 0) {
+        pinocchio::aba(model, data, q, v, tau);
+        return vectorXdToJs(data.ddq);
+    }
+
+    PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) fext = jsToForceVector(model, fext_js);
+    pinocchio::aba(model, data, q, v, tau, fext);
+    return vectorXdToJs(data.ddq);
+}
+
+val aba_with_forces_default_js(Model& model, Data& data,
+                               const val& q_js, const val& v_js, const val& tau_js) {
+    return aba_js(model, data, q_js, v_js, tau_js);
+}
+
 val crba_js(Model& model, Data& data, const val& q_js) {
     VectorXd q = jsToVectorXd(q_js);
     pinocchio::crba(model, data, q);
@@ -496,6 +577,8 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     // ── Algorithms ──
     function("rnea", &rnea_js);
     function("aba", &aba_js);
+    function("abaWithForces", select_overload<val(Model&, Data&, const val&, const val&, const val&, const val&)>(&aba_fext_js));
+    function("abaWithForces", select_overload<val(Model&, Data&, const val&, const val&, const val&)>(&aba_with_forces_default_js));
     function("crba", &crba_js);
     function("computeKineticEnergy", &computeKineticEnergy_js);
     function("computePotentialEnergy", &computePotentialEnergy_js);

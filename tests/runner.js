@@ -87,6 +87,7 @@ async function main() {
         'test_math.js',
         'test_model.js',
         'test_algo.js',
+        'test_aba_fext.js',
         'test_urdf.js',
         'test_collision.js'
     ];

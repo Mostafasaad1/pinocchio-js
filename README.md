@@ -119,6 +119,10 @@ async function main() {
 
 ### Algorithms
 -   `pin.rnea(model, data, q, v, a)`: Recursive Newton-Euler Algorithm (Inverse Dynamics). Returns torques.
+-   `pin.aba(model, data, q, v, tau)`: Articulated Body Algorithm (Forward Dynamics). Returns joint accelerations `ddq`.
+-   `pin.abaWithForces(model, data, q, v, tau, fext?)`: Forward dynamics with optional spatial external forces.
+    *   `fext`: External Force Map (`{ [linkIndex: number]: Float64Array }`).
+    *   Each wrench is a 6-element array in the link's local frame: `[tx, ty, tz, fx, fy, fz]` (torques in N·m, forces in N).
 -   `pin.forwardKinematics(model, data, q)`: Updates joint placements.
 -   `pin.centerOfMass(model, data, q)`: Computes CoM position.
 -   `pin.computeTotalMass(model)`: Returns total mass.
