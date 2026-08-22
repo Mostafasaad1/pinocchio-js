@@ -90,7 +90,9 @@ async function main() {
         'test_aba_fext.js',
         'test_urdf.js',
         'test_collision.js',
-        'test_forward_kinematics.js'
+        'test_forward_kinematics.js',
+        'test_frames.js',
+        'test_frames_deep.js'
     ];
 
     let totalPassed = 0;

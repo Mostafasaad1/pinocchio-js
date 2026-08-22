@@ -280,37 +280,49 @@ JointIndex modelAddJoint(Model& model,
                          const JointModelWrapper& joint,
                          const SE3& placement,
                          const std::string& name) {
+    JointIndex jointId = 0;
     switch (joint.type) {
         case JointModelWrapper::RX:
-            return model.addJoint(parentId, pinocchio::JointModelRX(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRX(), placement, name);
+            break;
         case JointModelWrapper::RY:
-            return model.addJoint(parentId, pinocchio::JointModelRY(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRY(), placement, name);
+            break;
         case JointModelWrapper::RZ:
-            return model.addJoint(parentId, pinocchio::JointModelRZ(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRZ(), placement, name);
+            break;
         case JointModelWrapper::PX:
-            return model.addJoint(parentId, pinocchio::JointModelPX(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPX(), placement, name);
+            break;
         case JointModelWrapper::PY:
-            return model.addJoint(parentId, pinocchio::JointModelPY(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPY(), placement, name);
+            break;
         case JointModelWrapper::PZ:
-            return model.addJoint(parentId, pinocchio::JointModelPZ(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPZ(), placement, name);
+            break;
         case JointModelWrapper::REVOLUTE_UNALIGNED:
-            return model.addJoint(parentId,
+            jointId = model.addJoint(parentId,
                 pinocchio::JointModelRevoluteUnaligned(joint.axis),
                 placement, name);
+            break;
         case JointModelWrapper::PRISMATIC_UNALIGNED:
-            return model.addJoint(parentId,
+            jointId = model.addJoint(parentId,
                 pinocchio::JointModelPrismaticUnaligned(joint.axis),
                 placement, name);
+            break;
         case JointModelWrapper::FREE_FLYER:
-            return model.addJoint(parentId, pinocchio::JointModelFreeFlyer(), placement, name);
+            jointId = model.addJoint(parentId, pinocchio::JointModelFreeFlyer(), placement, name);
+            break;
         case JointModelWrapper::FIXED:
-            // Use an empty Composite joint (0 DOFs) to represent a fixed joint in the kinematic tree
-            return model.addJoint(parentId,
+            jointId = model.addJoint(parentId,
                 pinocchio::JointModelComposite(0),
                 placement, name);
+            break;
         default:
             return 0;
     }
+    model.addJointFrame(jointId);
+    return jointId;
 }
 
 /**
@@ -330,39 +342,43 @@ JointIndex modelAddJointWithLimits(Model& model,
     VectorXd minConfig = jsToVectorXd(minConfig_js);
     VectorXd maxConfig = jsToVectorXd(maxConfig_js);
 
+    JointIndex jointId = 0;
     switch (joint.type) {
         case JointModelWrapper::RX:
-            return model.addJoint(parentId, pinocchio::JointModelRX(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRX(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::RY:
-            return model.addJoint(parentId, pinocchio::JointModelRY(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRY(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::RZ:
-            return model.addJoint(parentId, pinocchio::JointModelRZ(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRZ(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::PX:
-            return model.addJoint(parentId, pinocchio::JointModelPX(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPX(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::PY:
-            return model.addJoint(parentId, pinocchio::JointModelPY(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPY(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::PZ:
-            return model.addJoint(parentId, pinocchio::JointModelPZ(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPZ(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::REVOLUTE_UNALIGNED:
-            return model.addJoint(parentId,
-                pinocchio::JointModelRevoluteUnaligned(joint.axis),
-                placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelRevoluteUnaligned(joint.axis), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::PRISMATIC_UNALIGNED:
-            return model.addJoint(parentId,
-                pinocchio::JointModelPrismaticUnaligned(joint.axis),
-                placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelPrismaticUnaligned(joint.axis), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         case JointModelWrapper::FREE_FLYER:
-            return model.addJoint(parentId, pinocchio::JointModelFreeFlyer(), placement, name,
-                                  maxEffort, maxVelocity, minConfig, maxConfig);
+            jointId = model.addJoint(parentId, pinocchio::JointModelFreeFlyer(), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
+        case JointModelWrapper::FIXED:
+            jointId = model.addJoint(parentId, pinocchio::JointModelComposite(0), placement, name, maxEffort, maxVelocity, minConfig, maxConfig);
+            break;
         default:
             return 0;
     }
+    model.addJointFrame(jointId);
+    return jointId;
 }
 
 /**
@@ -480,6 +496,33 @@ val getJointJacobian_js(const Model& model, Data& data,
     return matrixXdToJs(J);
 }
 
+val computeFrameJacobian_js(Model& model, Data& data, const val& q_js,
+                            FrameIndex frameId, int refFrame) {
+    if (frameId >= model.frames.size()) {
+        std::string msg = "Invalid frame ID";
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        throw std::out_of_range(msg);
+    }
+    VectorXd q = jsToVectorXd(q_js);
+    pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
+    MatrixXd J = MatrixXd::Zero(6, model.nv);
+    pinocchio::computeFrameJacobian(model, data, q, frameId, rf, J);
+    return matrixXdToJs(J);
+}
+
+val getFrameJacobian_js(const Model& model, Data& data,
+                        FrameIndex frameId, int refFrame) {
+    if (frameId >= model.frames.size()) {
+        std::string msg = "Invalid frame ID";
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        throw std::out_of_range(msg);
+    }
+    pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
+    MatrixXd J = MatrixXd::Zero(6, model.nv);
+    pinocchio::getFrameJacobian(model, data, frameId, rf, J);
+    return matrixXdToJs(J);
+}
+
 void updateFramePlacements_js(Model& model, Data& data) {
     pinocchio::updateFramePlacements(model, data);
 }
@@ -585,7 +628,14 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
         .property("nq", &Model::nq)
         .property("nv", &Model::nv)
         .property("njoints", &Model::njoints)
+        .property("nframes", &Model::nframes)
         .property("name", &Model::name)
+        .function("existFrame", optional_override([](const Model& m, const std::string& name) -> bool {
+            return m.existFrame(name);
+        }))
+        .function("getFrameId", optional_override([](const Model& m, const std::string& name) -> FrameIndex {
+            return m.getFrameId(name);
+        }))
         ;
 
     function("addJoint", &modelAddJoint);
@@ -597,6 +647,14 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
         .constructor<const Model&>()
         .function("getVelocity", &dataGetVelocity)
         .function("getAcceleration", &dataGetAcceleration)
+        .function("oMf", optional_override([](const Data& d, size_t frame_id) -> pinocchio::SE3 {
+            if (frame_id >= d.oMf.size()) {
+                std::string msg = "Frame index out of bounds.";
+                EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+                throw std::out_of_range(msg);
+            }
+            return d.oMf[frame_id];
+        }))
         ;
 
     function("getTau", &dataTau);
@@ -619,6 +677,8 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("getJointPlacement", &getJointPlacement_js);
     function("computeJointJacobians", &computeJointJacobians_js);
     function("getJointJacobian", &getJointJacobian_js);
+    function("computeFrameJacobian", &computeFrameJacobian_js);
+    function("getFrameJacobian", &getFrameJacobian_js);
     function("centerOfMass", &centerOfMass_js);
     function("computeTotalMass", &computeTotalMass_js);
     function("randomConfiguration", &randomConfiguration_js);
