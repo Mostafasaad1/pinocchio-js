@@ -10,6 +10,7 @@ A project based on Pinocchio-js
 
 -   **Core Algorithms:** RNEA (Inverse Dynamics), Forward Kinematics, Center of Mass, Jacobian.
 -   **URDF Parsing:** Custom JavaScript parser ensuring compatibility with Pinocchio's model structure.
+-   **TypeScript Support:** Built-in TypeScript declaration files (`.d.ts`) for full type-safety and IDE autocomplete.
 -   **Cross-Platform:** Runs in Browsers (Chrome, Firefox, Safari) and Node.js.
 -   **Lightweight:** ~600KB (gzipped) WASM binary.
 -   **Zero-Dependency Runtime:** No external logical dependencies for the basic WASM module (excluding the optional URDF parser).
@@ -86,6 +87,26 @@ Run the smoke test:
 npm run test:smoke
 ```
 
+### 3. TypeScript
+
+Pinocchio-js includes full TypeScript declarations out of the box.
+
+```typescript
+import PinocchioModule, { Model, Data, ReferenceFrame } from 'pinocchio-js';
+import { parseURDF, buildPinocchioModel } from 'pinocchio-js/src/urdf-parser.mjs';
+
+async function main() {
+    const pin = await PinocchioModule();
+    const model: Model = new pin.Model();
+    const data: Data = new pin.Data(model);
+
+    const q = new Float64Array(model.nq);
+    const v = new Float64Array(model.nv);
+    const a = new Float64Array(model.nv);
+    const tau: Float64Array = pin.rnea(model, data, q, v, a);
+}
+```
+
 ## API Reference
 
 ### `pin.Model`
@@ -109,10 +130,14 @@ npm run test:smoke
 
 ## Testing
 
-Run the full test suite (Node.js required):
+Run the test suites:
 
 ```bash
+# Run unit & smoke tests (Node.js required)
 npm test
+
+# Run TypeScript type checking
+npm run test:types
 ```
 
 This runs:
@@ -120,6 +145,7 @@ This runs:
 -   Model tests (Joint creation)
 -   Algo tests (RNEA, COM)
 -   URDF tests (Loading real robot descriptions)
+-   TypeScript static type check (`tsc --noEmit`)
 
 ## Contributing
 

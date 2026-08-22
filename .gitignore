@@ -25,3 +25,8 @@ CMakeFiles/
 examples/
 .agents/
 .specify/
+specs/
+
+# Logs and environment
+*.log
+.env*

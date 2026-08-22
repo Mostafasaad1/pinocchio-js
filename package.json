@@ -13,9 +13,12 @@
     "physics-engine"
   ],
   "main": "build/pinocchio.js",
+  "types": "src/pinocchio.d.ts",
   "files": [
     "build/pinocchio.js",
     "build/pinocchio.wasm",
+    "src/pinocchio.d.ts",
+    "src/urdf-parser.d.ts",
     "src/urdf-parser.mjs",
     "README.md",
     "LICENSE"
@@ -23,7 +26,8 @@
   "scripts": {
     "build": "powershell -ExecutionPolicy Bypass -File ./build.ps1",
     "test": "node tests/runner.js",
-    "test:smoke": "node tests/smoke_test.js"
+    "test:smoke": "node tests/smoke_test.js",
+    "test:types": "tsc --project tests/typescript/tsconfig.json --noEmit"
   },
   "dependencies": {
     "xmldom": "^0.6.0"
@@ -33,7 +37,10 @@
     "example": "examples",
     "test": "tests"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.3.3"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Mostafasaad1/pinocchio-js.git"
@@ -44,5 +51,4 @@
     "url": "https://github.com/Mostafasaad1/pinocchio-js/issues"
   },
   "homepage": "https://github.com/Mostafasaad1/pinocchio-js#readme"
-
 }
