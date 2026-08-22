@@ -5,11 +5,22 @@
 
 import { Model, PinocchioModule } from './pinocchio';
 
+export interface AABB {
+    min: [number, number, number];
+    max: [number, number, number];
+}
+
+export interface URDFCollision {
+    origin: URDFOrigin;
+    geometry: AABB;
+}
+
 export interface URDFLink {
     name: string;
     mass: number;
     com: [number, number, number];
     inertia: [number, number, number, number, number, number];
+    collisions?: URDFCollision[];
 }
 
 export interface URDFOrigin {

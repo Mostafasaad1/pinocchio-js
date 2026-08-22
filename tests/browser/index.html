@@ -171,6 +171,13 @@
             <div id="test3-timing" class="timing"></div>
         </div>
 
+        <!-- Test 4: Collision -->
+        <div class="card">
+            <h2>Test 4 — Collisions</h2>
+            <div id="test4-result" class="result">Waiting...</div>
+            <div id="test4-timing" class="timing"></div>
+        </div>
+
         <!-- URDF loading -->
         <div class="card">
             <h2>URDF Loader</h2>
@@ -182,6 +189,7 @@
 
     <script type="module">
         import { parseURDF, buildPinocchioModel } from '../../src/urdf-parser.mjs';
+        import { CollisionChecker } from '../../src/collision-checker.mjs';
 
         const statusEl = document.getElementById('status');
 
@@ -302,6 +310,65 @@
                 document.getElementById('test3-result').textContent =
                     `Jacobian of joint 2 (6×${nv}):\n${matStr}`;
                 document.getElementById('test3-timing').textContent = '';
+            }
+
+            // ── Test 4: Collisions ──
+            {
+                const dummyURDF = `
+                <robot name="joint_test">
+                    <link name="base_link">
+                        <collision><geometry><box size="1 1 1"/></geometry></collision>
+                    </link>
+                    <link name="link1">
+                        <collision>
+                            <origin xyz="1 0 0" rpy="0 0 0"/>
+                            <geometry><box size="1 1 1"/></geometry>
+                        </collision>
+                    </link>
+                    <link name="link2">
+                        <collision>
+                            <origin xyz="2 0 0" rpy="0 0 0"/>
+                            <geometry><box size="1 1 1"/></geometry>
+                        </collision>
+                    </link>
+                    <joint name="j1" type="prismatic">
+                        <parent link="base_link"/><child link="link1"/>
+                        <origin xyz="1 0 0"/><axis xyz="1 0 0"/>
+                    </joint>
+                    <joint name="j2" type="prismatic">
+                        <parent link="link1"/><child link="link2"/>
+                        <origin xyz="1 0 0"/><axis xyz="1 0 0"/>
+                    </joint>
+                </robot>`;
+                const urdfData = parseURDF(dummyURDF);
+                const model = buildPinocchioModel(pin, urdfData);
+                const data = new pin.Data(model);
+                const checker = new CollisionChecker(pin, model, data, urdfData);
+
+                const qSafe = new Float64Array([0, 0]);
+                checker.updateCollisions(qSafe);
+                const resSafe = checker.checkCollisions();
+
+                const qColliding = new Float64Array([0, -4]); // Folds back to base
+                
+                const t0 = performance.now();
+                const ITERS = 1000;
+                let resColliding;
+                for (let i = 0; i < ITERS; i++) {
+                    checker.updateCollisions(qColliding);
+                    resColliding = checker.checkCollisions();
+                }
+                const dt = performance.now() - t0;
+
+                const contactStr = resColliding.contacts.map(c => `[${c.linkA}, ${c.linkB}]`).join(', ');
+
+                document.getElementById('test4-result').textContent =
+                    `q=[0, 0] Collision: ${resSafe.hasCollision}\n` +
+                    `q=[0, -4] Collision: ${resColliding.hasCollision}\n` +
+                    `Contacts: ${contactStr}`;
+
+                document.getElementById('test4-timing').textContent =
+                    `⏱ ${ITERS} queries in ${dt.toFixed(1)}ms → ${(dt / ITERS * 1000).toFixed(1)} µs/call`;
             }
 
             // ── URDF Loader ──

@@ -18,6 +18,7 @@ import PinocchioModule, {
     computeJointJacobians
 } from '../../src/pinocchio';
 import { parseURDF, buildPinocchioModel, URDFData } from '../../src/urdf-parser';
+import { CollisionChecker, CollisionResult } from '../../src/collision-checker';
 
 async function runTest(): Promise<void> {
     const pin = await PinocchioModule();
@@ -82,6 +83,12 @@ async function runTest(): Promise<void> {
     const parsedData: URDFData = parseURDF(sampleUrdf);
     const urdfModel: Model = buildPinocchioModel(pin, parsedData);
 
+    // Collision Checker testing
+    const collisionChecker = new CollisionChecker(pin, urdfModel, data, parsedData);
+    collisionChecker.setIgnoredPairs([['base_link', 'link1']]);
+    collisionChecker.updateCollisions(q0);
+    const colResult: CollisionResult = collisionChecker.checkCollisions();
+
     console.log({
         nq,
         nv,
@@ -90,7 +97,8 @@ async function runTest(): Promise<void> {
         comLength: com.length,
         jLength: J.length,
         urdfRobotName: parsedData.robotName,
-        urdfNq: urdfModel.nq
+        urdfNq: urdfModel.nq,
+        hasCollision: colResult.hasCollision
     });
 }
 

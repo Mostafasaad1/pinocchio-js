@@ -32,7 +32,7 @@ export function parseURDF(urdfString) {
     const linkNodes = Array.from(robot.getElementsByTagName('link'));
     for (const linkEl of linkNodes) {
         const name = linkEl.getAttribute('name');
-        const link = { name, mass: 0, com: [0, 0, 0], inertia: [0, 0, 0, 0, 0, 0] };
+        const link = { name, mass: 0, com: [0, 0, 0], inertia: [0, 0, 0, 0, 0, 0], collisions: [] };
 
         const inertialNodes = linkEl.getElementsByTagName('inertial');
         if (inertialNodes.length > 0) {
@@ -64,7 +64,65 @@ export function parseURDF(urdfString) {
             }
         }
 
-        links[name] = link;
+        // ── Parse collisions ──
+    // ── Parse collisions ──
+    const collisionNodes = Array.from(linkEl.getElementsByTagName('collision'));
+    for (const collisionEl of collisionNodes) {
+      const collision = {
+        origin: { xyz: [0, 0, 0], rpy: [0, 0, 0] },
+        geometry: { min: [0, 0, 0], max: [0, 0, 0] }
+      };
+
+      const originNodes = collisionEl.getElementsByTagName('origin');
+      if (originNodes.length > 0) {
+        collision.origin.xyz = parseXyz(originNodes[0]);
+        collision.origin.rpy = parseRpy(originNodes[0]);
+      }
+
+      const geometryNodes = collisionEl.getElementsByTagName('geometry');
+      if (geometryNodes.length > 0) {
+        const geometryEl = geometryNodes[0];
+        const boxNodes = geometryEl.getElementsByTagName('box');
+        if (boxNodes.length > 0) {
+          const box = boxNodes[0];
+          const sizeAttr = box.getAttribute('size');
+          const size = sizeAttr ? sizeAttr.trim().split(/\s+/).map(Number) : [0, 0, 0];
+          collision.geometry.min = [-size[0]/2, -size[1]/2, -size[2]/2];
+          collision.geometry.max = [size[0]/2, size[1]/2, size[2]/2];
+        }
+
+        const cylinderNodes = geometryEl.getElementsByTagName('cylinder');
+        if (cylinderNodes.length > 0) {
+          const cylinder = cylinderNodes[0];
+          const radius = parseFloat(cylinder.getAttribute('radius')) || 0;
+          const length = parseFloat(cylinder.getAttribute('length')) || 0;
+          collision.geometry.min = [-radius, -radius, -length/2];
+          collision.geometry.max = [radius, radius, length/2];
+        }
+
+        const sphereNodes = geometryEl.getElementsByTagName('sphere');
+        if (sphereNodes.length > 0) {
+          const sphere = sphereNodes[0];
+          const radius = parseFloat(sphere.getAttribute('radius')) || 0;
+          collision.geometry.min = [-radius, -radius, -radius];
+          collision.geometry.max = [radius, radius, radius];
+        }
+
+        const meshNodes = geometryEl.getElementsByTagName('mesh');
+        if (meshNodes.length > 0) {
+          const mesh = meshNodes[0];
+          // Approximate mesh with a 1x1x1 bounding box, scaled by the scale attribute
+          const scaleAttr = mesh.getAttribute('scale');
+          const scaleVals = scaleAttr ? scaleAttr.trim().split(/\s+/).map(Number) : [1, 1, 1];
+          collision.geometry.min = [-scaleVals[0]/2, -scaleVals[1]/2, -scaleVals[2]/2];
+          collision.geometry.max = [scaleVals[0]/2, scaleVals[1]/2, scaleVals[2]/2];
+        }
+      }
+
+      link.collisions.push(collision);
+    }
+
+    links[name] = link;
     }
 
     // ── Parse joints ──

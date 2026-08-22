@@ -87,7 +87,8 @@ async function main() {
         'test_math.js',
         'test_model.js',
         'test_algo.js',
-        'test_urdf.js'
+        'test_urdf.js',
+        'test_collision.js'
     ];
 
     let totalPassed = 0;

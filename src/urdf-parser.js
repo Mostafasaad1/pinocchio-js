@@ -30,7 +30,7 @@ export function parseURDF(urdfString) {
   const links = {};
   for (const linkEl of robot.querySelectorAll('link')) {
     const name = linkEl.getAttribute('name');
-    const link = { name, mass: 0, com: [0, 0, 0], inertia: [0, 0, 0, 0, 0, 0] };
+    const link = { name, mass: 0, com: [0, 0, 0], inertia: [0, 0, 0, 0, 0, 0], collisions: [] };
 
     const inertialEl = linkEl.querySelector('inertial');
     if (inertialEl) {
@@ -58,6 +58,57 @@ export function parseURDF(urdfString) {
           parseFloat(inertiaEl.getAttribute('izz')) || 0,
         ];
       }
+    }
+
+    // ── Parse collisions ──
+    for (const collisionEl of linkEl.querySelectorAll('collision')) {
+      const collision = {
+        origin: { xyz: [0, 0, 0], rpy: [0, 0, 0] },
+        geometry: { min: [0, 0, 0], max: [0, 0, 0] }
+      };
+
+      const originEl = collisionEl.querySelector('origin');
+      if (originEl) {
+        collision.origin.xyz = parseXyz(originEl);
+        collision.origin.rpy = parseRpy(originEl);
+      }
+
+      const geometryEl = collisionEl.querySelector('geometry');
+      if (geometryEl) {
+        const box = geometryEl.querySelector('box');
+        if (box) {
+          const sizeAttr = box.getAttribute('size');
+          const size = sizeAttr ? sizeAttr.trim().split(/\s+/).map(Number) : [0, 0, 0];
+          collision.geometry.min = [-size[0]/2, -size[1]/2, -size[2]/2];
+          collision.geometry.max = [size[0]/2, size[1]/2, size[2]/2];
+        }
+
+        const cylinder = geometryEl.querySelector('cylinder');
+        if (cylinder) {
+          const radius = parseFloat(cylinder.getAttribute('radius')) || 0;
+          const length = parseFloat(cylinder.getAttribute('length')) || 0;
+          collision.geometry.min = [-radius, -radius, -length/2];
+          collision.geometry.max = [radius, radius, length/2];
+        }
+
+        const sphere = geometryEl.querySelector('sphere');
+        if (sphere) {
+          const radius = parseFloat(sphere.getAttribute('radius')) || 0;
+          collision.geometry.min = [-radius, -radius, -radius];
+          collision.geometry.max = [radius, radius, radius];
+        }
+
+        const mesh = geometryEl.querySelector('mesh');
+        if (mesh) {
+          // Approximate mesh with a 1x1x1 bounding box, scaled by the scale attribute
+          const scaleAttr = mesh.getAttribute('scale');
+          const scaleVals = scaleAttr ? scaleAttr.trim().split(/\s+/).map(Number) : [1, 1, 1];
+          collision.geometry.min = [-scaleVals[0]/2, -scaleVals[1]/2, -scaleVals[2]/2];
+          collision.geometry.max = [scaleVals[0]/2, scaleVals[1]/2, scaleVals[2]/2];
+        }
+      }
+
+      link.collisions.push(collision);
     }
 
     links[name] = link;
