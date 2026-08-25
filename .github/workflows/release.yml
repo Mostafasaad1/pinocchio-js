@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: stack-of-tasks/pinocchio
+          ref: v2.7.1
           path: pinocchio
 
       - name: Setup Node.js
@@ -35,25 +36,38 @@ jobs:
       - name: Setup Emscripten SDK
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 3.1.51
+          version: 3.1.64
           actions-cache-folder: 'emsdk-cache'
 
       - name: Build WASM
         run: |
           mkdir -p build && cd build
-          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release -DPINOCCHIO_SOURCE_DIR=$(pwd)/../pinocchio
+          emcmake cmake .. \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DPINOCCHIO_SOURCE_DIR=$(pwd)/../pinocchio
           emmake make -j$(nproc)
 
       - name: Run Tests
         run: npm test
 
+      - name: Run TypeScript Type Check
+        run: npm run test:types
+
+      - name: Run Smoke Test
+        run: npm run test:smoke
+
       # 1. Create GitHub Release & Upload Binaries
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             build/pinocchio.js
             build/pinocchio.wasm
+            src/pinocchio.d.ts
+            src/urdf-parser.d.ts
+            src/urdf-parser.mjs
+            src/collision-checker.d.ts
+            src/collision-checker.mjs
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,7 +75,8 @@ jobs:
       # 2. Publish to NPM (OIDC Provenance)
       - name: Publish to NPM
         run: npm publish --provenance --access public
-        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # 3. Publish to GitHub Packages (Optional Backup)
       # - name: Publish to GitHub Packages
