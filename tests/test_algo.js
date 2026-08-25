@@ -113,6 +113,66 @@ module.exports = {
             check(assert(J.length === 12, 'Jacobian size 6x2 (12)'));
         } catch (e) { console.error(e); failed++; }
 
+        // 5. Pre-allocated Buffer Tests (US3)
+        console.log('  --- Pre-allocated Output Buffer Tests (US3) ---');
+        try {
+            const q = new Float64Array([0.1, 0.2]);
+            const v = new Float64Array([0.3, 0.4]);
+            const a = new Float64Array([0.5, 0.6]);
+            const tau = new Float64Array([0.7, 0.8]);
+
+            // RNEA pre-allocated
+            const outTau = new Float64Array(model.nv);
+            const resRnea = pin.rnea(model, data, q, v, a, outTau);
+            check(assert(resRnea === outTau, 'rnea writes to and returns provided outArray'));
+            const expectedTau = pin.rnea(model, data, q, v, a);
+            check(assertVecClose(outTau, expectedTau, 1e-12, 'rnea outArray matches standard result'));
+
+            // ABA pre-allocated
+            const outDdq = new Float64Array(model.nv);
+            const resAba = pin.aba(model, data, q, v, tau, outDdq);
+            check(assert(resAba === outDdq, 'aba writes to and returns provided outArray'));
+            const expectedDdq = pin.aba(model, data, q, v, tau);
+            check(assertVecClose(outDdq, expectedDdq, 1e-12, 'aba outArray matches standard result'));
+
+            // CRBA pre-allocated
+            const outM = new Float64Array(model.nv * model.nv);
+            const resCrba = pin.crba(model, data, q, outM);
+            check(assert(resCrba === outM, 'crba writes to and returns provided outArray'));
+            const expectedM = pin.crba(model, data, q);
+            check(assertVecClose(outM, expectedM, 1e-12, 'crba outArray matches standard result'));
+
+            // CoM pre-allocated
+            const outCom = new Float64Array(3);
+            const resCom = pin.centerOfMass(model, data, q, outCom);
+            check(assert(resCom === outCom, 'centerOfMass writes to and returns provided outArray'));
+            const expectedCom = pin.centerOfMass(model, data, q);
+            check(assertVecClose(outCom, expectedCom, 1e-12, 'centerOfMass outArray matches standard result'));
+
+            // Generalized Gravity pre-allocated
+            const outG = new Float64Array(model.nv);
+            const resG = pin.computeGeneralizedGravity(model, data, q, outG);
+            check(assert(resG === outG, 'computeGeneralizedGravity writes to and returns provided outArray'));
+            const expectedG = pin.computeGeneralizedGravity(model, data, q);
+            check(assertVecClose(outG, expectedG, 1e-12, 'computeGeneralizedGravity outArray matches standard result'));
+
+            // Non-linear Effects pre-allocated
+            const outNle = new Float64Array(model.nv);
+            const resNle = pin.nonLinearEffects(model, data, q, v, outNle);
+            check(assert(resNle === outNle, 'nonLinearEffects writes to and returns provided outArray'));
+            const expectedNle = pin.nonLinearEffects(model, data, q, v);
+            check(assertVecClose(outNle, expectedNle, 1e-12, 'nonLinearEffects outArray matches standard result'));
+
+            // Joint Jacobian pre-allocated
+            pin.computeJointJacobians(model, data, q);
+            const outJ = new Float64Array(6 * model.nv);
+            const resJ = pin.getJointJacobian(model, data, 2, pin.ReferenceFrame.LOCAL, outJ);
+            check(assert(resJ === outJ, 'getJointJacobian writes to and returns provided outArray'));
+            const expectedJ = pin.getJointJacobian(model, data, 2, pin.ReferenceFrame.LOCAL);
+            check(assertVecClose(outJ, expectedJ, 1e-12, 'getJointJacobian outArray matches standard result'));
+
+        } catch (e) { console.error(e); failed++; }
+
         return { passed, failed };
     }
 };

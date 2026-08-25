@@ -35,11 +35,20 @@ export class CollisionChecker {
                 const T_col_local = createTransformFromXyzRpy(col.origin.xyz, col.origin.rpy);
                 const T_col_joint = composeTransforms(T_link, T_col_local);
 
+                const min = col.geometry.min;
+                const max = col.geometry.max;
+
                 this.activeCollisions.push({
                     linkName: linkName,
                     jointId: linkMapping.jointId,
                     localOffset: T_col_joint,
                     localAABB: col.geometry,
+                    cx: (max[0] + min[0]) / 2,
+                    cy: (max[1] + min[1]) / 2,
+                    cz: (max[2] + min[2]) / 2,
+                    hx: (max[0] - min[0]) / 2,
+                    hy: (max[1] - min[1]) / 2,
+                    hz: (max[2] - min[2]) / 2,
                     globalAABB: { min: [0,0,0], max: [0,0,0] }
                 });
             }
@@ -117,40 +126,47 @@ export class CollisionChecker {
             const col = this.activeCollisions[i];
             const jointPlacement = this.pin.getJointPlacement(this.data, col.jointId);
             
-            const R_joint = Array.from(jointPlacement.rotation);
-            const t_joint = Array.from(jointPlacement.translation);
-            const T_joint = { R: R_joint, t: t_joint };
+            const R1 = jointPlacement.rotation;
+            const t1 = jointPlacement.translation;
+            const R2 = col.localOffset.R;
+            const t2 = col.localOffset.t;
             
-            const T_abs = composeTransforms(T_joint, col.localOffset);
+            const R0 = R1[0]*R2[0] + R1[1]*R2[3] + R1[2]*R2[6];
+            const R1_val = R1[0]*R2[1] + R1[1]*R2[4] + R1[2]*R2[7];
+            const R2_val = R1[0]*R2[2] + R1[1]*R2[5] + R1[2]*R2[8];
+
+            const R3 = R1[3]*R2[0] + R1[4]*R2[3] + R1[5]*R2[6];
+            const R4 = R1[3]*R2[1] + R1[4]*R2[4] + R1[5]*R2[7];
+            const R5 = R1[3]*R2[2] + R1[4]*R2[5] + R1[5]*R2[8];
+
+            const R6 = R1[6]*R2[0] + R1[7]*R2[3] + R1[8]*R2[6];
+            const R7 = R1[6]*R2[1] + R1[7]*R2[4] + R1[8]*R2[7];
+            const R8 = R1[6]*R2[2] + R1[7]*R2[5] + R1[8]*R2[8];
+
+            const t0 = R1[0]*t2[0] + R1[1]*t2[1] + R1[2]*t2[2] + t1[0];
+            const t1_val = R1[3]*t2[0] + R1[4]*t2[1] + R1[5]*t2[2] + t1[1];
+            const t2_val = R1[6]*t2[0] + R1[7]*t2[1] + R1[8]*t2[2] + t1[2];
             
-            const min = col.localAABB.min;
-            const max = col.localAABB.max;
+            const cx = col.cx, cy = col.cy, cz = col.cz;
+            const hx = col.hx, hy = col.hy, hz = col.hz;
             
-            const cx = (max[0] + min[0]) / 2;
-            const cy = (max[1] + min[1]) / 2;
-            const cz = (max[2] + min[2]) / 2;
+            const ncx = R0*cx + R1_val*cy + R2_val*cz + t0;
+            const ncy = R3*cx + R4*cy + R5*cz + t1_val;
+            const ncz = R6*cx + R7*cy + R8*cz + t2_val;
             
-            const hx = (max[0] - min[0]) / 2;
-            const hy = (max[1] - min[1]) / 2;
-            const hz = (max[2] - min[2]) / 2;
+            const nhx = Math.abs(R0)*hx + Math.abs(R1_val)*hy + Math.abs(R2_val)*hz;
+            const nhy = Math.abs(R3)*hx + Math.abs(R4)*hy + Math.abs(R5)*hz;
+            const nhz = Math.abs(R6)*hx + Math.abs(R7)*hy + Math.abs(R8)*hz;
             
-            const R = T_abs.R;
-            const t = T_abs.t;
-            const ncx = R[0]*cx + R[1]*cy + R[2]*cz + t[0];
-            const ncy = R[3]*cx + R[4]*cy + R[5]*cz + t[1];
-            const ncz = R[6]*cx + R[7]*cy + R[8]*cz + t[2];
-            
-            const absR = R.map(Math.abs);
-            const nhx = absR[0]*hx + absR[1]*hy + absR[2]*hz;
-            const nhy = absR[3]*hx + absR[4]*hy + absR[5]*hz;
-            const nhz = absR[6]*hx + absR[7]*hy + absR[8]*hz;
-            
-            col.globalAABB.min[0] = ncx - nhx;
-            col.globalAABB.min[1] = ncy - nhy;
-            col.globalAABB.min[2] = ncz - nhz;
-            col.globalAABB.max[0] = ncx + nhx;
-            col.globalAABB.max[1] = ncy + nhy;
-            col.globalAABB.max[2] = ncz + nhz;
+            const gmin = col.globalAABB.min;
+            const gmax = col.globalAABB.max;
+
+            gmin[0] = ncx - nhx;
+            gmin[1] = ncy - nhy;
+            gmin[2] = ncz - nhz;
+            gmax[0] = ncx + nhx;
+            gmax[1] = ncy + nhy;
+            gmax[2] = ncz + nhz;
         }
     }
 

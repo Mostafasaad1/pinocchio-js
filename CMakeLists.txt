@@ -111,8 +111,8 @@ if(EMSCRIPTEN)
 
   # Emscripten sysroot is usually: emsdk/upstream/emscripten/cache/sysroot
   target_compile_options(pinocchio_wasm PRIVATE
-      -msimd128                  # WASM SIMD for Eigen vectorization
-    )
+    -msimd128                  # WASM SIMD for Eigen vectorization
+  )
 
   target_link_options(pinocchio_wasm PRIVATE
     --bind # Enable Embind

@@ -105,7 +105,8 @@ export declare function rnea(
     data: Data,
     q: Float64Array | ArrayLike<number>,
     v: Float64Array | ArrayLike<number>,
-    a: Float64Array | ArrayLike<number>
+    a: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function aba(
@@ -113,7 +114,8 @@ export declare function aba(
     data: Data,
     q: Float64Array | ArrayLike<number>,
     v: Float64Array | ArrayLike<number>,
-    tau: Float64Array | ArrayLike<number>
+    tau: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export type ExternalForceMap = {
@@ -126,13 +128,15 @@ export declare function abaWithForces(
     q: Float64Array | ArrayLike<number>,
     v: Float64Array | ArrayLike<number>,
     tau: Float64Array | ArrayLike<number>,
-    fext?: ExternalForceMap
+    fext?: ExternalForceMap,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function crba(
     model: Model,
     data: Data,
-    q: Float64Array | ArrayLike<number>
+    q: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function computeKineticEnergy(
@@ -151,14 +155,16 @@ export declare function computePotentialEnergy(
 export declare function computeGeneralizedGravity(
     model: Model,
     data: Data,
-    q: Float64Array | ArrayLike<number>
+    q: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function nonLinearEffects(
     model: Model,
     data: Data,
     q: Float64Array | ArrayLike<number>,
-    v: Float64Array | ArrayLike<number>
+    v: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function forwardKinematics(
@@ -189,7 +195,8 @@ export declare function getJointJacobian(
     model: Model,
     data: Data,
     jointId: number,
-    refFrame: ReferenceFrame | number
+    refFrame: ReferenceFrame | number,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function computeFrameJacobian(
@@ -197,21 +204,24 @@ export declare function computeFrameJacobian(
     data: Data,
     q: Float64Array | ArrayLike<number>,
     frameId: number,
-    refFrame: ReferenceFrame | number
+    refFrame: ReferenceFrame | number,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function getFrameJacobian(
     model: Model,
     data: Data,
     frameId: number,
-    refFrame: ReferenceFrame | number
+    refFrame: ReferenceFrame | number,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function getFrameVelocity(
     model: Model,
     data: Data,
     frameId: number,
-    refFrame: ReferenceFrame | number
+    refFrame: ReferenceFrame | number,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function getFrameAcceleration(
@@ -225,7 +235,8 @@ export declare function getFrameAcceleration(
 export declare function centerOfMass(
     model: Model,
     data: Data,
-    q: Float64Array | ArrayLike<number>
+    q: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
 ): Float64Array;
 
 export declare function computeTotalMass(model: Model): number;

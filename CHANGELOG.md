@@ -7,6 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-08-22
+
+### Added — Performance Optimizations
+
+- **Zero-Copy Bulk Data Transfer (JS ↔ WASM)**:
+  - Updated `jsToVectorXd`, `vectorXdToJs`, `jsToVector3d`, `vector3dToJs`, `jsToMatrix3d`, and `matrixXdToJs` in `src/pinocchio_embind.cpp` to use `emscripten::typed_memory_view` and native `TypedArray.prototype.set` for bulk memory copies.
+  - Optimized external force dictionary parsing in `jsToForceVector`.
+- **Pre-Allocated Output Buffers (Zero Allocation Hot-Path)**:
+  - Added support for optional `outArray?: Float64Array` parameter to all core algorithm functions: `rnea`, `aba`, `abaWithForces`, `crba`, `centerOfMass`, `computeGeneralizedGravity`, `nonLinearEffects`, `getJointJacobian`, `computeFrameJacobian`, `getFrameJacobian`, and `getFrameVelocity`.
+  - Calling algorithms in tight simulation loops with a pre-allocated buffer produces zero JS heap allocations.
+- **WASM Binary Size Optimization**:
+  - `MinSizeRel` build target reduces `pinocchio.wasm` binary size down to **457 KB** (~44% reduction from baseline).
+- **Collision Checker Performance**:
+  - Optimized `updateCollisions` in `src/collision-checker.mjs` by eliminating object allocations, `Array.from`, and `Array.map` calls inside the per-link loop.
+  - Broad-phase collision checking speed improved to ~0.018 ms per configuration.
+- **URDF Parser Speedup**:
+  - Refactored `parseURDF` in `src/urdf-parser.mjs` with direct-child DOM traversal instead of recursive `getElementsByTagName` queries.
+  - Optimized `buildPinocchioModel` with indexed BFS joint lookups ($O(N)$ vs $O(N^2)$).
+- **Benchmark Suites**:
+  - Added `tests/benchmark_algorithms.js` for throughput and latency benchmarking.
+  - Added `tests/benchmark-prealloc.js` for zero-allocation verification.
+
+---
+
 ## [1.3.0] — 2026-08-22
 
 ### Added — Build System
