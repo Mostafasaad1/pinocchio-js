@@ -173,7 +173,7 @@ PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) jsToForceVector(const Model& mode
         long parsed = std::strtol(keyStr.c_str(), &endptr, 10);
         if (*endptr != '\0' || parsed < 0 || parsed >= model.njoints) {
             std::string msg = "Link index " + keyStr + " is out of range (0.." + std::to_string(model.njoints - 1) + ")";
-            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
             return fext;
         }
         int idx = static_cast<int>(parsed);
@@ -181,13 +181,13 @@ PINOCCHIO_ALIGNED_STD_VECTOR(pinocchio::Force) jsToForceVector(const Model& mode
         val w = fext_js[key];
         if (w.isUndefined() || w.isNull() || w["length"].isUndefined()) {
             std::string msg = "Wrench at link " + std::to_string(idx) + " must have 6 components, got 0";
-            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
             return fext;
         }
         unsigned len = w["length"].as<unsigned>();
         if (len != 6) {
             std::string msg = "Wrench at link " + std::to_string(idx) + " must have 6 components, got " + std::to_string(len);
-            EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+            EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
             return fext;
         }
         wasmView.call<void>("set", w);
@@ -557,7 +557,7 @@ val computeFrameJacobian_js(Model& model, Data& data, const val& q_js,
                             FrameIndex frameId, int refFrame, const val& outArray) {
     if (frameId >= model.frames.size()) {
         std::string msg = "Invalid frame ID";
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::null();
     }
     VectorXd q = jsToVectorXd(q_js);
@@ -576,7 +576,7 @@ val getFrameJacobian_js(const Model& model, Data& data,
                         FrameIndex frameId, int refFrame, const val& outArray) {
     if (frameId >= model.frames.size()) {
         std::string msg = "Invalid frame ID";
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::null();
     }
     pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
@@ -594,7 +594,7 @@ val getFrameVelocity_js(const Model& model, const Data& data,
                         FrameIndex frameId, int refFrame, const val& outArray) {
     if (frameId >= model.frames.size()) {
         std::string msg = "Invalid frame ID";
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::null();
     }
     pinocchio::ReferenceFrame rf = static_cast<pinocchio::ReferenceFrame>(refFrame);
@@ -616,7 +616,7 @@ void getFrameAcceleration_js(
 ) {
     if (!model.existFrame(frameName)) {
         std::string msg = "Frame '" + frameName + "' not found in model.";
-        EM_ASM({ throw new Error(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["Error"])(UTF8ToString($0)); }, msg.c_str());
         return;
     }
 
@@ -631,7 +631,7 @@ void getFrameAcceleration_js(
     
     if (model.njoints > 1 && !is_initialized) {
         std::string msg = "forwardKinematicsQVA must be called before getFrameAcceleration";
-        EM_ASM({ throw new Error(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["Error"])(UTF8ToString($0)); }, msg.c_str());
         return;
     }
 
@@ -694,19 +694,19 @@ val integrate_js(const Model& model, const val& q_js, const val& v_js, const val
     if (q_js.isUndefined() || q_js.isNull() || q_js["length"].as<int>() != model.nq) {
         int len = (q_js.isUndefined() || q_js.isNull()) ? 0 : q_js["length"].as<int>();
         std::string msg = "Configuration vector q has invalid dimension: expected " + std::to_string(model.nq) + ", got " + std::to_string(len);
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::undefined();
     }
     if (v_js.isUndefined() || v_js.isNull() || v_js["length"].as<int>() != model.nv) {
         int len = (v_js.isUndefined() || v_js.isNull()) ? 0 : v_js["length"].as<int>();
         std::string msg = "Velocity vector v has invalid dimension: expected " + std::to_string(model.nv) + ", got " + std::to_string(len);
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::undefined();
     }
     if (!outArray.isUndefined() && !outArray.isNull() && outArray["length"].as<int>() != model.nq) {
         int len = outArray["length"].as<int>();
         std::string msg = "Output vector outArray has invalid dimension: expected " + std::to_string(model.nq) + ", got " + std::to_string(len);
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::undefined();
     }
 
@@ -732,7 +732,7 @@ val dataComAt(const Data& data, unsigned idx) {
 val dataGetVelocity(const Data& data, JointIndex jointId) {
     if (jointId >= data.v.size()) {
         std::string msg = "Joint index out of bounds.";
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::null();
     }
     VectorXd v = data.v[jointId].toVector();
@@ -742,7 +742,7 @@ val dataGetVelocity(const Data& data, JointIndex jointId) {
 val dataGetAcceleration(const Data& data, JointIndex jointId) {
     if (jointId >= data.a.size()) {
         std::string msg = "Joint index out of bounds.";
-        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
         return val::null();
     }
     VectorXd a = data.a[jointId].toVector();
@@ -815,7 +815,7 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
         .function("oMf", optional_override([](const Data& d, size_t frame_id) -> pinocchio::SE3 {
             if (frame_id >= d.oMf.size()) {
                 std::string msg = "Frame index out of bounds.";
-                EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+                EM_ASM({ throw new (globalThis["RangeError"])(UTF8ToString($0)); }, msg.c_str());
                 return pinocchio::SE3::Identity();
             }
             return d.oMf[frame_id];
