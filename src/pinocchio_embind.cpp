@@ -666,6 +666,16 @@ val centerOfMass_default_js(Model& model, Data& data, const val& q_js) {
     return centerOfMass_js(model, data, q_js, val::undefined());
 }
 
+val centerOfMassJacobian_js(Model& model, Data& data, const val& q_js, const val& outArray) {
+    VectorXd q = jsToVectorXd(q_js);
+    const pinocchio::Data::Matrix3x& J = pinocchio::jacobianCenterOfMass(model, data, q);
+    return matrixXdToJs(J, outArray);
+}
+
+val centerOfMassJacobian_default_js(Model& model, Data& data, const val& q_js) {
+    return centerOfMassJacobian_js(model, data, q_js, val::undefined());
+}
+
 double computeTotalMass_js(const Model& model) {
     return pinocchio::computeTotalMass(model);
 }
@@ -678,6 +688,36 @@ val randomConfiguration_js(const Model& model) {
 val neutralConfiguration_js(const Model& model) {
     VectorXd q = pinocchio::neutral(model);
     return vectorXdToJs(q);
+}
+
+val integrate_js(const Model& model, const val& q_js, const val& v_js, const val& outArray) {
+    if (q_js.isUndefined() || q_js.isNull() || q_js["length"].as<int>() != model.nq) {
+        int len = (q_js.isUndefined() || q_js.isNull()) ? 0 : q_js["length"].as<int>();
+        std::string msg = "Configuration vector q has invalid dimension: expected " + std::to_string(model.nq) + ", got " + std::to_string(len);
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        return val::undefined();
+    }
+    if (v_js.isUndefined() || v_js.isNull() || v_js["length"].as<int>() != model.nv) {
+        int len = (v_js.isUndefined() || v_js.isNull()) ? 0 : v_js["length"].as<int>();
+        std::string msg = "Velocity vector v has invalid dimension: expected " + std::to_string(model.nv) + ", got " + std::to_string(len);
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        return val::undefined();
+    }
+    if (!outArray.isUndefined() && !outArray.isNull() && outArray["length"].as<int>() != model.nq) {
+        int len = outArray["length"].as<int>();
+        std::string msg = "Output vector outArray has invalid dimension: expected " + std::to_string(model.nq) + ", got " + std::to_string(len);
+        EM_ASM({ throw new RangeError(UTF8ToString($0)); }, msg.c_str());
+        return val::undefined();
+    }
+
+    VectorXd q = jsToVectorXd(q_js);
+    VectorXd v = jsToVectorXd(v_js);
+    VectorXd q_next = pinocchio::integrate(model, q, v);
+    return vectorXdToJs(q_next, outArray);
+}
+
+val integrate_default_js(const Model& model, const val& q_js, const val& v_js) {
+    return integrate_js(model, q_js, v_js, val::undefined());
 }
 
 // ─── Data accessors ─────────────────────────────────────────────
@@ -832,7 +872,13 @@ EMSCRIPTEN_BINDINGS(pinocchio_wasm) {
     function("centerOfMass", select_overload<val(Model&, Data&, const val&)>(&centerOfMass_default_js));
     function("centerOfMass", select_overload<val(Model&, Data&, const val&, const val&)>(&centerOfMass_js));
 
+    function("centerOfMassJacobian", select_overload<val(Model&, Data&, const val&)>(&centerOfMassJacobian_default_js));
+    function("centerOfMassJacobian", select_overload<val(Model&, Data&, const val&, const val&)>(&centerOfMassJacobian_js));
+
     function("computeTotalMass", &computeTotalMass_js);
     function("randomConfiguration", &randomConfiguration_js);
     function("neutralConfiguration", &neutralConfiguration_js);
+
+    function("integrate", select_overload<val(const Model&, const val&, const val&)>(&integrate_default_js));
+    function("integrate", select_overload<val(const Model&, const val&, const val&, const val&)>(&integrate_js));
 }

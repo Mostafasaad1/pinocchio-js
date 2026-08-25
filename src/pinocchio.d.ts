@@ -239,9 +239,23 @@ export declare function centerOfMass(
     outArray?: Float64Array
 ): Float64Array;
 
+export declare function centerOfMassJacobian(
+    model: Model,
+    data: Data,
+    q: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
+): Float64Array;
+
 export declare function computeTotalMass(model: Model): number;
 export declare function randomConfiguration(model: Model): Float64Array;
 export declare function neutralConfiguration(model: Model): Float64Array;
+
+export declare function integrate(
+    model: Model,
+    q: Float64Array | ArrayLike<number>,
+    v: Float64Array | ArrayLike<number>,
+    outArray?: Float64Array
+): Float64Array;
 
 export interface PinocchioModule {
     ReferenceFrame: typeof ReferenceFrame;
@@ -289,9 +303,11 @@ export interface PinocchioModule {
     getFrameVelocity: typeof getFrameVelocity;
     getFrameAcceleration: typeof getFrameAcceleration;
     centerOfMass: typeof centerOfMass;
+    centerOfMassJacobian: typeof centerOfMassJacobian;
     computeTotalMass: typeof computeTotalMass;
     randomConfiguration: typeof randomConfiguration;
     neutralConfiguration: typeof neutralConfiguration;
+    integrate: typeof integrate;
 }
 
 declare function createPinocchioModule(moduleOverrides?: object): Promise<PinocchioModule>;

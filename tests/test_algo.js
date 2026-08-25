@@ -101,7 +101,45 @@ module.exports = {
 
         } catch (e) { console.error(e); failed++; }
 
-        // 4. Jacobian
+        // 4. Center of Mass Jacobian
+        console.log('  --- Center of Mass Jacobian ---');
+        try {
+            const q0 = new Float64Array([0, 0]);
+            const Jcom0 = pin.centerOfMassJacobian(model, data, q0);
+            check(assert(Jcom0.length === 3 * model.nv, `CoM Jacobian size is 3x${model.nv} (${3 * model.nv})`));
+            
+            // Analytical verification at neutral config
+            // Col 0: [0, -1.0, 0], Col 1: [0.25, 0, 0]
+            const expectedJcom0 = [0.0, -1.0, 0.0, 0.25, 0.0, 0.0];
+            check(assertVecClose(Jcom0, expectedJcom0, 1e-6, 'CoM Jacobian matches analytical values at neutral config'));
+
+            // Finite differences verification at non-zero configuration
+            const q = new Float64Array([0.3, -0.5]);
+            const v = new Float64Array([0.4, -0.2]);
+            const Jcom = pin.centerOfMassJacobian(model, data, q);
+
+            const eps = 1e-7;
+            const q_plus = new Float64Array([q[0] + eps * v[0], q[1] + eps * v[1]]);
+            const q_minus = new Float64Array([q[0] - eps * v[0], q[1] - eps * v[1]]);
+            const com_plus = pin.centerOfMass(model, data, q_plus);
+            const com_minus = pin.centerOfMass(model, data, q_minus);
+
+            const v_com_fd = [
+                (com_plus[0] - com_minus[0]) / (2 * eps),
+                (com_plus[1] - com_minus[1]) / (2 * eps),
+                (com_plus[2] - com_minus[2]) / (2 * eps)
+            ];
+
+            const v_com_analytic = [
+                Jcom[0] * v[0] + Jcom[3] * v[1],
+                Jcom[1] * v[0] + Jcom[4] * v[1],
+                Jcom[2] * v[0] + Jcom[5] * v[1]
+            ];
+
+            check(assertVecClose(v_com_analytic, v_com_fd, 1e-5, 'CoM Jacobian * v matches finite-difference d(com)/dt'));
+        } catch (e) { console.error(e); failed++; }
+
+        // 5. Jacobian
         console.log('  --- Jacobian ---');
         try {
             const q = new Float64Array([0, 0]);
@@ -113,7 +151,7 @@ module.exports = {
             check(assert(J.length === 12, 'Jacobian size 6x2 (12)'));
         } catch (e) { console.error(e); failed++; }
 
-        // 5. Pre-allocated Buffer Tests (US3)
+        // 6. Pre-allocated Buffer Tests (US3)
         console.log('  --- Pre-allocated Output Buffer Tests (US3) ---');
         try {
             const q = new Float64Array([0.1, 0.2]);
@@ -149,6 +187,13 @@ module.exports = {
             const expectedCom = pin.centerOfMass(model, data, q);
             check(assertVecClose(outCom, expectedCom, 1e-12, 'centerOfMass outArray matches standard result'));
 
+            // CoM Jacobian pre-allocated
+            const outJcom = new Float64Array(3 * model.nv);
+            const resJcom = pin.centerOfMassJacobian(model, data, q, outJcom);
+            check(assert(resJcom === outJcom, 'centerOfMassJacobian writes to and returns provided outArray'));
+            const expectedJcom = pin.centerOfMassJacobian(model, data, q);
+            check(assertVecClose(outJcom, expectedJcom, 1e-12, 'centerOfMassJacobian outArray matches standard result'));
+
             // Generalized Gravity pre-allocated
             const outG = new Float64Array(model.nv);
             const resG = pin.computeGeneralizedGravity(model, data, q, outG);
@@ -170,6 +215,85 @@ module.exports = {
             check(assert(resJ === outJ, 'getJointJacobian writes to and returns provided outArray'));
             const expectedJ = pin.getJointJacobian(model, data, 2, pin.ReferenceFrame.LOCAL);
             check(assertVecClose(outJ, expectedJ, 1e-12, 'getJointJacobian outArray matches standard result'));
+
+        } catch (e) { console.error(e); failed++; }
+
+        // ─── Joint Configuration Integration Tests (US1 & US2) ───
+        console.log('  --- Joint Configuration Integration (integrate) ---');
+        try {
+            // US1: Euclidean joint integration (allocating)
+            const q_euc = new Float64Array([0.2, -0.5]);
+            const v_euc = new Float64Array([0.1, 0.3]);
+            const q_next_euc = pin.integrate(model, q_euc, v_euc);
+            check(assert(q_next_euc.length === 2, 'integrate returns array of length model.nq'));
+            check(assertVecClose(q_next_euc, [0.3, -0.2], 1e-12, 'Euclidean integrate matches q + v'));
+
+            // US1: Euclidean joint integration (in-place)
+            const outQ_euc = new Float64Array(model.nq);
+            const resQ_euc = pin.integrate(model, q_euc, v_euc, outQ_euc);
+            check(assert(resQ_euc === outQ_euc, 'integrate writes to and returns provided outArray'));
+            check(assertVecClose(outQ_euc, q_next_euc, 1e-12, 'in-place integrate matches allocating result'));
+
+            // US1: Dimension validation checks
+            let caughtQ = false;
+            try {
+                pin.integrate(model, new Float64Array([0]), v_euc);
+            } catch (err) {
+                caughtQ = true;
+                check(assert(err.message.includes('Configuration vector q has invalid dimension'), 'Clear error on invalid q dimension'));
+            }
+            check(assert(caughtQ, 'Throws error when q dimension is invalid'));
+
+            let caughtV = false;
+            try {
+                pin.integrate(model, q_euc, new Float64Array([0, 0, 0]));
+            } catch (err) {
+                caughtV = true;
+                check(assert(err.message.includes('Velocity vector v has invalid dimension'), 'Clear error on invalid v dimension'));
+            }
+            check(assert(caughtV, 'Throws error when v dimension is invalid'));
+
+            let caughtOut = false;
+            try {
+                pin.integrate(model, q_euc, v_euc, new Float64Array(5));
+            } catch (err) {
+                caughtOut = true;
+                check(assert(err.message.includes('Output vector outArray has invalid dimension'), 'Clear error on invalid outArray dimension'));
+            }
+            check(assert(caughtOut, 'Throws error when outArray dimension is invalid'));
+
+            // US2: Free-Flyer Non-Euclidean Integration (SE3 / SO3)
+            const ffModel = new pin.Model();
+            const j_ff = pin.addJoint(ffModel, 0, pin.JointModelFreeFlyer(), id, "freeflyer");
+            pin.appendBodyToJoint(ffModel, j_ff, inertia, id);
+            check(assert(ffModel.nq === 7 && ffModel.nv === 6, 'Free-flyer model created (nq=7, nv=6)'));
+
+            const q0_ff = pin.neutralConfiguration(ffModel); // [0, 0, 0, 0, 0, 0, 1]
+            check(assertVecClose(q0_ff, [0, 0, 0, 0, 0, 0, 1], 1e-12, 'Free-flyer neutral configuration'));
+
+            // Pure translation
+            const v_trans = new Float64Array([1.5, -2.0, 3.5, 0, 0, 0]);
+            const q_trans = pin.integrate(ffModel, q0_ff, v_trans);
+            check(assertVecClose(q_trans, [1.5, -2.0, 3.5, 0, 0, 0, 1], 1e-12, 'Free-flyer pure translation integrate'));
+
+            // Pure rotation around X by 90 degrees
+            const v_rot = new Float64Array([0, 0, 0, Math.PI / 2, 0, 0]);
+            const q_rot = pin.integrate(ffModel, q0_ff, v_rot);
+            const halfAngle = Math.PI / 4;
+            const expectedQuatX = [0, 0, 0, Math.sin(halfAngle), 0, 0, Math.cos(halfAngle)];
+            check(assertVecClose(q_rot, expectedQuatX, 1e-12, 'Free-flyer pure rotation integrate (90 deg around X)'));
+            const rotQuatNorm = Math.hypot(q_rot[3], q_rot[4], q_rot[5], q_rot[6]);
+            check(assertClose(rotQuatNorm, 1.0, 1e-12, 'Free-flyer rotation preserves unit quaternion norm'));
+
+            // Combined motion with in-place buffer
+            const v_comb = new Float64Array([0.1, -0.2, 0.3, 0.2, 0.4, -0.1]);
+            const q_comb_alloc = pin.integrate(ffModel, q0_ff, v_comb);
+            const out_comb = new Float64Array(7);
+            const res_comb = pin.integrate(ffModel, q0_ff, v_comb, out_comb);
+            check(assert(res_comb === out_comb, 'Free-flyer in-place returns provided buffer'));
+            check(assertVecClose(out_comb, q_comb_alloc, 1e-12, 'Free-flyer in-place matches allocating'));
+            const combQuatNorm = Math.hypot(out_comb[3], out_comb[4], out_comb[5], out_comb[6]);
+            check(assertClose(combQuatNorm, 1.0, 1e-12, 'Free-flyer combined motion preserves unit quaternion norm'));
 
         } catch (e) { console.error(e); failed++; }
 
