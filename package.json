@@ -1,6 +1,6 @@
 {
   "name": "pinocchio-js",
-  "version": "1.2.2",
+  "version": "1.4.0",
   "description": "High-performance WebAssembly bindings for the Pinocchio rigid body dynamics library",
   "keywords": [
     "pinocchio",
@@ -20,6 +20,9 @@
     "src/pinocchio.d.ts",
     "src/urdf-parser.d.ts",
     "src/urdf-parser.mjs",
+    "src/urdf-parser.js",
+    "src/collision-checker.d.ts",
+    "src/collision-checker.mjs",
     "README.md",
     "LICENSE"
   ],
