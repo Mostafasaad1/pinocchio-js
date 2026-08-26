@@ -3,6 +3,7 @@
 // Exposes Pinocchio's core C++ API to JavaScript via Emscripten Embind.
 // ──────────────────────────────────────────────────────────────────
 
+#include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include <cstdlib>
